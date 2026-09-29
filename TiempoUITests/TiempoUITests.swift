@@ -42,6 +42,17 @@ final class TiempoUITests: XCTestCase {
         review.click()
         XCTAssertEqual(design.label, "Start")
         XCTAssertEqual(review.label, "Start")
+
+        app.buttons["reset-all"].click()
+        let confirm = app.buttons["confirm-reset"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 2), app.debugDescription)
+        confirm.click()
+
+        let cleared = NSPredicate(format: "label == %@", "00:00:00")
+        expectation(for: cleared, evaluatedWith: total)
+        waitForExpectations(timeout: 2)
+        XCTAssertEqual(design.label, "Start")
+        XCTAssertEqual(review.label, "Start")
     }
 
     private func createTask(named name: String, in app: XCUIApplication) {

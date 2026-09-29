@@ -28,6 +28,14 @@ enum TimeTracker {
     }
 
     static func totalElapsed(_ tasks: [TaskItem], at now: Date = .now) -> TimeInterval {
-        tasks.reduce(0) { $0 + elapsed($1, at: now) }
+        tasks.reduce(0) { $0 + elapsed($1, at: now).rounded(.down) }
+    }
+
+    static func resetAll(in context: ModelContext) throws {
+        let tasks = try context.fetch(FetchDescriptor<TaskItem>())
+        for task in tasks {
+            task.accumulated = 0
+            task.runningSince = nil
+        }
     }
 }

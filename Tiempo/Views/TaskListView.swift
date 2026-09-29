@@ -4,6 +4,7 @@ import SwiftUI
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt) private var tasks: [TaskItem]
+    @State private var resetConfirmationPresented = false
     var selection: SidebarItem
     var projects: [Project]
     var onNewTask: () -> Void
@@ -71,9 +72,14 @@ struct TaskListView: View {
         VStack(spacing: 0) {
             Divider()
             HStack {
+                Button("Reset", systemImage: "arrow.counterclockwise") {
+                    resetConfirmationPresented = true
+                }
+                .disabled(!canReset)
+                .accessibilityIdentifier("reset-all")
+                Spacer()
                 Text("Total")
                     .font(.headline)
-                Spacer()
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text(DurationFormat.string(from: TimeTracker.totalElapsed(tasks, at: context.date)))
                         .font(.title3.monospacedDigit().weight(.semibold))
@@ -85,6 +91,22 @@ struct TaskListView: View {
             .padding(.vertical, 12)
         }
         .background(.bar)
+        .alert("Reset all task times?", isPresented: $resetConfirmationPresented) {
+            Button("Reset", role: .destructive, action: resetAll)
+                .accessibilityIdentifier("confirm-reset")
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Every task returns to 00:00:00, and the running timer stops.")
+        }
+    }
+
+    private var canReset: Bool {
+        tasks.contains { $0.accumulated > 0 || $0.isRunning }
+    }
+
+    private func resetAll() {
+        try? TimeTracker.resetAll(in: modelContext)
+        try? modelContext.save()
     }
 
     private func delete(_ task: TaskItem) {

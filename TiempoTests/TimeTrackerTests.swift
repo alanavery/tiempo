@@ -73,6 +73,44 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB], at: now), 14, accuracy: 0.001)
     }
 
+    func testTotalElapsedSumsWholeSecondsShownPerTask() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let taskA = TaskItem(name: "Task 1", project: project)
+        let taskB = TaskItem(name: "Task 2", project: project)
+        context.insert(taskA)
+        context.insert(taskB)
+        taskA.accumulated = 10.6
+        taskB.accumulated = 10.4
+
+        XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB]), 20, accuracy: 0.001)
+    }
+
+    func testResetAllClearsTimeAndStopsTheRunningTask() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let taskA = TaskItem(name: "Task 1", project: project)
+        let taskB = TaskItem(name: "Task 2", project: project)
+        context.insert(taskA)
+        context.insert(taskB)
+
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        try TimeTracker.start(taskA, at: start, in: context)
+        TimeTracker.pause(taskA, at: start.addingTimeInterval(10))
+        try TimeTracker.start(taskB, at: start.addingTimeInterval(10), in: context)
+
+        try TimeTracker.resetAll(in: context)
+
+        let now = start.addingTimeInterval(20)
+        XCTAssertEqual(taskA.accumulated, 0, accuracy: 0.001)
+        XCTAssertNil(taskA.runningSince)
+        XCTAssertEqual(taskB.accumulated, 0, accuracy: 0.001)
+        XCTAssertNil(taskB.runningSince)
+        XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB], at: now), 0, accuracy: 0.001)
+    }
+
     private func makeContext() throws -> ModelContext {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
