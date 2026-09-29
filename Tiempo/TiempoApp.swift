@@ -4,6 +4,7 @@ import UserNotifications
 
 @main
 struct TiempoApp: App {
+    @NSApplicationDelegateAdaptor(StatusItemController.self) private var statusItem
     private let container: ModelContainer
     private let notifications = NotificationPresenter()
 
@@ -24,6 +25,7 @@ struct TiempoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .background(HideOnClose())
         }
         .defaultSize(width: 900, height: 600)
         .modelContainer(container)
