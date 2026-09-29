@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 71;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -25,29 +25,24 @@
 
 /* Begin PBXFileReference section */
 		A4B5C6D7E8F9012345678901 /* Tiempo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tiempo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B5C6D7E8F901234567890123 /* TiempoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TiempoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA3333333333333333333333 /* TiempoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TiempoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5C6D7E8F901234567890123 /* TiempoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TiempoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C6D7E8F90123456789012345 /* Tiempo */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Tiempo;
-			sourceTree = "<group>";
-		};
-		D7E8F9012345678901234567 /* TiempoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TiempoTests;
-			sourceTree = "<group>";
-		};
-		AA1111111111111111111111 /* TiempoUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TiempoUITests;
-			sourceTree = "<group>";
-		};
+		AA1111111111111111111111 /* TiempoUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = TiempoUITests; sourceTree = "<group>"; };
+		C6D7E8F90123456789012345 /* Tiempo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tiempo; sourceTree = "<group>"; };
+		D7E8F9012345678901234567 /* TiempoTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = TiempoTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AA5555555555555555555555 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E8F901234567890123456789 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -56,13 +51,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F90123456789012345678901 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AA5555555555555555555555 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -95,28 +83,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F60718293A4B5C6D7E8F9012 /* Tiempo */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 234567890123456789012345 /* Build configuration list for PBXNativeTarget "Tiempo" */;
-			buildPhases = (
-				345678901234567890123456 /* Sources */,
-				E8F901234567890123456789 /* Frameworks */,
-				456789012345678901234567 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				C6D7E8F90123456789012345 /* Tiempo */,
-			);
-			name = Tiempo;
-			packageProductDependencies = (
-			);
-			productName = Tiempo;
-			productReference = A4B5C6D7E8F9012345678901 /* Tiempo.app */;
-			productType = "com.apple.product-type.application";
-		};
 		0718293A4B5C6D7E8F901234 /* TiempoTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 567890123456789012345678 /* Build configuration list for PBXNativeTarget "TiempoTests" */;
@@ -163,6 +129,28 @@
 			productReference = AA3333333333333333333333 /* TiempoUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F60718293A4B5C6D7E8F9012 /* Tiempo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 234567890123456789012345 /* Build configuration list for PBXNativeTarget "Tiempo" */;
+			buildPhases = (
+				345678901234567890123456 /* Sources */,
+				E8F901234567890123456789 /* Frameworks */,
+				456789012345678901234567 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C6D7E8F90123456789012345 /* Tiempo */,
+			);
+			name = Tiempo;
+			packageProductDependencies = (
+			);
+			productName = Tiempo;
+			productReference = A4B5C6D7E8F9012345678901 /* Tiempo.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -196,7 +184,6 @@
 			);
 			mainGroup = 123456789012345678901234;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 012345678901234567890123 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -270,6 +257,40 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		AA9999999999999999999999 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tiempo.app.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = Tiempo;
+			};
+			name = Debug;
+		};
+		AAAAAAAAAAAAAAAAAAAAAAAA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tiempo.app.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = Tiempo;
+			};
+			name = Release;
+		};
 		ABCDEF0123456789ABCDEF01 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -374,9 +395,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -400,9 +421,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -426,9 +447,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -449,9 +470,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -468,52 +489,9 @@
 			};
 			name = Release;
 		};
-		AA9999999999999999999999 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tiempo.app.uitests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = Tiempo;
-			};
-			name = Debug;
-		};
-		AAAAAAAAAAAAAAAAAAAAAAAA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tiempo.app.uitests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = Tiempo;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		901234567890123456789012 /* Build configuration list for PBXProject "Tiempo" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				ABCDEF0123456789ABCDEF01 /* Debug */,
-				BCDEF0123456789ABCDEF012 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		234567890123456789012345 /* Build configuration list for PBXNativeTarget "Tiempo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -528,6 +506,15 @@
 			buildConfigurations = (
 				EF0123456789ABCDEF012345 /* Debug */,
 				F0123456789ABCDEF0123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		901234567890123456789012 /* Build configuration list for PBXProject "Tiempo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABCDEF0123456789ABCDEF01 /* Debug */,
+				BCDEF0123456789ABCDEF012 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

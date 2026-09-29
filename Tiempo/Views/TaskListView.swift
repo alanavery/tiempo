@@ -5,6 +5,8 @@ struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt) private var tasks: [TaskItem]
     @State private var resetConfirmationPresented = false
+    @State private var breakSettingsPresented = false
+    @State private var breakMonitor = BreakMonitor()
     var selection: SidebarItem
     var projects: [Project]
     var onNewTask: () -> Void
@@ -77,6 +79,15 @@ struct TaskListView: View {
                 }
                 .disabled(!canReset)
                 .accessibilityIdentifier("reset-all")
+                Button("Breaks", systemImage: "cup.and.saucer") {
+                    breakSettingsPresented = true
+                }
+                .accessibilityIdentifier("break-settings")
+                if breakMonitor.cycle.onBreak {
+                    Text("On a break")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text("Total")
                     .font(.headline)
@@ -85,12 +96,18 @@ struct TaskListView: View {
                         .font(.title3.monospacedDigit().weight(.semibold))
                         .frame(minWidth: 88, alignment: .trailing)
                         .accessibilityIdentifier("total-elapsed")
+                        .task(id: context.date) {
+                            breakMonitor.tick(tasks: tasks, at: context.date, in: modelContext)
+                        }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
         }
         .background(.bar)
+        .sheet(isPresented: $breakSettingsPresented) {
+            BreakSettingsSheet(monitor: breakMonitor)
+        }
         .alert("Reset all task times?", isPresented: $resetConfirmationPresented) {
             Button("Reset", role: .destructive, action: resetAll)
                 .accessibilityIdentifier("confirm-reset")
@@ -106,6 +123,7 @@ struct TaskListView: View {
 
     private func resetAll() {
         try? TimeTracker.resetAll(in: modelContext)
+        breakMonitor.resetCycle()
         try? modelContext.save()
     }
 
