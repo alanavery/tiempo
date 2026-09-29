@@ -35,6 +35,11 @@ struct TaskListView: View {
             }
         }
         .navigationTitle(title)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !projects.isEmpty {
+                totalBar
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("New Task", systemImage: "plus", action: onNewTask)
@@ -60,6 +65,26 @@ struct TaskListView: View {
         case .project(let id):
             tasks.filter { $0.project?.persistentModelID == id }
         }
+    }
+
+    private var totalBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack {
+                Text("Total")
+                    .font(.headline)
+                Spacer()
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(DurationFormat.string(from: TimeTracker.totalElapsed(tasks, at: context.date)))
+                        .font(.title3.monospacedDigit().weight(.semibold))
+                        .frame(minWidth: 88, alignment: .trailing)
+                        .accessibilityIdentifier("total-elapsed")
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .background(.bar)
     }
 
     private func delete(_ task: TaskItem) {

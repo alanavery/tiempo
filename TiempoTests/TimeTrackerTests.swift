@@ -55,6 +55,24 @@ final class TimeTrackerTests: XCTestCase {
         )
     }
 
+    func testTotalElapsedSumsEveryTaskIncludingTheRunningOne() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let taskA = TaskItem(name: "Task 1", project: project)
+        let taskB = TaskItem(name: "Task 2", project: project)
+        context.insert(taskA)
+        context.insert(taskB)
+
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        try TimeTracker.start(taskA, at: start, in: context)
+        TimeTracker.pause(taskA, at: start.addingTimeInterval(10))
+        try TimeTracker.start(taskB, at: start.addingTimeInterval(10), in: context)
+
+        let now = start.addingTimeInterval(14)
+        XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB], at: now), 14, accuracy: 0.001)
+    }
+
     private func makeContext() throws -> ModelContext {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(

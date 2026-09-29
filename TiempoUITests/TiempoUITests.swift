@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class TiempoUITests: XCTestCase {
     func testCreateTasksAndSwitchTimers() {
         let app = XCUIApplication()
@@ -27,6 +28,12 @@ final class TiempoUITests: XCTestCase {
         design.click()
         XCTAssertEqual(design.label, "Pause")
         XCTAssertEqual(review.label, "Start")
+
+        let total = app.staticTexts["total-elapsed"]
+        XCTAssertTrue(total.waitForExistence(timeout: 2))
+        let ticking = NSPredicate(format: "label != %@", "00:00:00")
+        expectation(for: ticking, evaluatedWith: total)
+        waitForExpectations(timeout: 3)
 
         review.click()
         XCTAssertEqual(design.label, "Start")
