@@ -58,6 +58,10 @@ struct ContentView: View {
         if case .project(let id) = selection, id == project.persistentModelID {
             selection = .all
         }
+        let tasks = project.tasks
+        for task in tasks {
+            modelContext.delete(task)
+        }
         modelContext.delete(project)
         try? modelContext.save()
     }

@@ -38,6 +38,12 @@ struct TaskListView: View {
             }
         }
         .navigationTitle(title)
+        .task(id: tasks.map(\.persistentModelID)) {
+            while !Task.isCancelled {
+                breakMonitor.tick(tasks: tasks, at: .now, in: modelContext)
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !projects.isEmpty {
                 totalBar
@@ -96,9 +102,6 @@ struct TaskListView: View {
                         .font(.title3.monospacedDigit().weight(.semibold))
                         .frame(minWidth: 88, alignment: .trailing)
                         .accessibilityIdentifier("total-elapsed")
-                        .task(id: context.date) {
-                            breakMonitor.tick(tasks: tasks, at: context.date, in: modelContext)
-                        }
                 }
             }
             .padding(.horizontal, 20)

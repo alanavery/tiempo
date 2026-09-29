@@ -54,7 +54,9 @@ final class BreakMonitor {
             postBreakNotification()
         }
         if signals.contains(.pause) {
-            for task in tasks where task.isRunning {
+            let running = tasks.filter { $0.modelContext != nil && !$0.isDeleted && $0.isRunning }
+            guard !running.isEmpty else { return }
+            for task in running {
                 TimeTracker.pause(task, at: date)
             }
             try? context.save()
