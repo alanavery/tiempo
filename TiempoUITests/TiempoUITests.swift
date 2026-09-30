@@ -55,6 +55,45 @@ final class TiempoUITests: XCTestCase {
         XCTAssertEqual(review.label, "Start")
     }
 
+    func testRenameProjectAndTask() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitesting"]
+        app.launch()
+
+        let newProject = app.buttons["new-project"]
+        XCTAssertTrue(newProject.waitForExistence(timeout: 5), app.debugDescription)
+        newProject.click()
+        let projectName = app.textFields["project-name"]
+        XCTAssertTrue(projectName.waitForExistence(timeout: 2), app.debugDescription)
+        projectName.click()
+        projectName.typeText("Client")
+        app.buttons["create-project"].click()
+
+        createTask(named: "Design", in: app)
+
+        rename(app.descendants(matching: .any)["project-Client"], to: "Acme", in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["project-Acme"].waitForExistence(timeout: 2), app.debugDescription)
+
+        rename(app.descendants(matching: .any)["task-Design"], to: "Sketch", in: app)
+        XCTAssertTrue(app.buttons["timer-Sketch"].waitForExistence(timeout: 2), app.debugDescription)
+        XCTAssertFalse(app.buttons["timer-Design"].exists)
+    }
+
+    private func rename(_ element: XCUIElement, to name: String, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2), app.debugDescription)
+        element.rightClick()
+        let rename = app.menuItems["Rename"]
+        XCTAssertTrue(rename.waitForExistence(timeout: 2), app.debugDescription)
+        rename.click()
+
+        let field = app.textFields["rename-name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 2), app.debugDescription)
+        field.click()
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText(name)
+        app.buttons["save-rename"].click()
+    }
+
     private func createTask(named name: String, in app: XCUIApplication) {
         let newTask = app.buttons["new-task"]
         XCTAssertTrue(newTask.waitForExistence(timeout: 2))

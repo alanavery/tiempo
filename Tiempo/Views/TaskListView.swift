@@ -7,6 +7,7 @@ struct TaskListView: View {
     @Environment(BreakCoordinator.self) private var breaks
     @State private var resetConfirmationPresented = false
     @State private var breakSettingsPresented = false
+    @State private var renamingTaskID: PersistentIdentifier?
     var selection: SidebarItem
     var projects: [Project]
     var onNewTask: () -> Void
@@ -29,6 +30,9 @@ struct TaskListView: View {
                 List(visibleTasks) { task in
                     TaskRowView(task: task, showsProject: selection == .all)
                         .contextMenu {
+                            Button("Rename") {
+                                renamingTaskID = task.persistentModelID
+                            }
                             Button("Delete", role: .destructive) {
                                 delete(task)
                             }
@@ -38,6 +42,14 @@ struct TaskListView: View {
             }
         }
         .navigationTitle(title)
+        .sheet(isPresented: renamingPresented) {
+            if let task = renamingTask {
+                RenameSheet(title: "Rename Task", name: task.name) { newName in
+                    task.name = newName
+                    try? modelContext.save()
+                }
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !projects.isEmpty {
                 totalBar
@@ -122,6 +134,21 @@ struct TaskListView: View {
         try? TimeTracker.resetAll(in: modelContext)
         breaks.monitor.resetCycle()
         try? modelContext.save()
+    }
+
+    private var renamingTask: TaskItem? {
+        tasks.first { $0.persistentModelID == renamingTaskID }
+    }
+
+    private var renamingPresented: Binding<Bool> {
+        Binding(
+            get: { renamingTaskID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    renamingTaskID = nil
+                }
+            }
+        )
     }
 
     private func delete(_ task: TaskItem) {
