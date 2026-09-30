@@ -4,9 +4,9 @@ import SwiftUI
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt) private var tasks: [TaskItem]
+    @Environment(BreakCoordinator.self) private var breaks
     @State private var resetConfirmationPresented = false
     @State private var breakSettingsPresented = false
-    @State private var breakMonitor = BreakMonitor()
     var selection: SidebarItem
     var projects: [Project]
     var onNewTask: () -> Void
@@ -38,12 +38,6 @@ struct TaskListView: View {
             }
         }
         .navigationTitle(title)
-        .task(id: tasks.map(\.persistentModelID)) {
-            while !Task.isCancelled {
-                breakMonitor.tick(tasks: tasks, at: .now, in: modelContext)
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !projects.isEmpty {
                 totalBar
@@ -89,7 +83,7 @@ struct TaskListView: View {
                     breakSettingsPresented = true
                 }
                 .accessibilityIdentifier("break-settings")
-                if breakMonitor.cycle.onBreak {
+                if breaks.monitor.cycle.onBreak {
                     Text("On a break")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -109,7 +103,7 @@ struct TaskListView: View {
         }
         .background(.bar)
         .sheet(isPresented: $breakSettingsPresented) {
-            BreakSettingsSheet(monitor: breakMonitor)
+            BreakSettingsSheet(monitor: breaks.monitor)
         }
         .alert("Reset all task times?", isPresented: $resetConfirmationPresented) {
             Button("Reset", role: .destructive, action: resetAll)
@@ -126,7 +120,7 @@ struct TaskListView: View {
 
     private func resetAll() {
         try? TimeTracker.resetAll(in: modelContext)
-        breakMonitor.resetCycle()
+        breaks.monitor.resetCycle()
         try? modelContext.save()
     }
 

@@ -58,8 +58,9 @@ struct ContentView: View {
         if case .project(let id) = selection, id == project.persistentModelID {
             selection = .all
         }
-        let tasks = project.tasks
-        for task in tasks {
+        let projectID = project.persistentModelID
+        let tasks = (try? modelContext.fetch(FetchDescriptor<TaskItem>())) ?? []
+        for task in tasks where task.project?.persistentModelID == projectID {
             modelContext.delete(task)
         }
         modelContext.delete(project)
