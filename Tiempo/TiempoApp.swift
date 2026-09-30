@@ -37,6 +37,12 @@ struct TiempoApp: App {
             ContentView()
                 .environment(breaks)
                 .background(HideOnClose())
+                .onAppear {
+                    breaks.onTotalElapsed = { total in
+                        statusItem.update(total: total)
+                    }
+                    breaks.reportTotal()
+                }
         }
         .defaultSize(width: 900, height: 600)
         .modelContainer(container)

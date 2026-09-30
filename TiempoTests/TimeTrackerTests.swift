@@ -73,6 +73,14 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB], at: now), 14, accuracy: 0.001)
     }
 
+    func testMenuBarDurationUsesHoursAndMinutes() {
+        XCTAssertNil(DurationFormat.menuBarString(from: 0))
+        XCTAssertEqual(DurationFormat.menuBarString(from: 45), "0:00")
+        XCTAssertEqual(DurationFormat.menuBarString(from: 90), "0:01")
+        XCTAssertEqual(DurationFormat.menuBarString(from: 3600 + 5 * 60 + 3), "1:05")
+        XCTAssertEqual(DurationFormat.string(from: 3600 + 5 * 60 + 3), "01:05:03")
+    }
+
     func testTotalElapsedSumsWholeSecondsShownPerTask() throws {
         let context = try makeContext()
         let project = Project(name: "Work")

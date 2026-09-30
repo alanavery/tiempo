@@ -5,16 +5,31 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            let image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Tiempo")
-            image?.isTemplate = true
-            button.image = image
-            button.toolTip = "Tiempo"
+            button.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
             button.target = self
             button.action = #selector(toggleWindow)
         }
         statusItem = item
+        update(total: 0)
+    }
+
+    func update(total: TimeInterval) {
+        guard let button = statusItem?.button else { return }
+        let exact = DurationFormat.string(from: total)
+        button.toolTip = exact
+        if let short = DurationFormat.menuBarString(from: total) {
+            button.image = nil
+            button.title = short
+            button.setAccessibilityLabel("Total tracked time \(exact)")
+        } else {
+            button.title = ""
+            let image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Tiempo")
+            image?.isTemplate = true
+            button.image = image
+            button.setAccessibilityLabel("Tiempo")
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
