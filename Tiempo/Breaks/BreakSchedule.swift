@@ -3,11 +3,14 @@ import Foundation
 struct BreakCycle: Equatable {
     var breaksCompleted = 0
     var onBreak = false
+    var workdayComplete = false
+    var balanced = false
 }
 
 enum BreakSignal: Equatable {
     case notify
     case pause
+    case workdayComplete
 }
 
 enum BreakSchedule {
@@ -25,6 +28,10 @@ enum BreakSchedule {
         return segmentMinutes * 60
     }
 
+    static func totalBreakTime(intervals: Int, breakMinutes: Double) -> TimeInterval {
+        Double(max(0, intervals - 1)) * max(0, breakMinutes) * 60
+    }
+
     static func advance(
         total: TimeInterval,
         segment: TimeInterval,
@@ -33,16 +40,36 @@ enum BreakSchedule {
     ) -> (BreakCycle, [BreakSignal]) {
         let segmentSeconds = wholeSeconds(segment)
         guard segmentSeconds > 0, intervals > 0 else { return (cycle, []) }
-        let maxBreaks = intervals - 1
-        guard maxBreaks > 0 else { return (cycle, []) }
-        if cycle.onBreak || cycle.breaksCompleted >= maxBreaks {
+        if cycle.workdayComplete || cycle.onBreak {
             return (cycle, [])
         }
 
+        let totalSeconds = wholeSeconds(total)
+        let maxBreaks = max(0, intervals - 1)
+        let workdayAt = intervals * segmentSeconds
+
+        if cycle.breaksCompleted >= maxBreaks {
+            guard totalSeconds >= workdayAt else { return (cycle, []) }
+            return (
+                BreakCycle(
+                    breaksCompleted: cycle.breaksCompleted,
+                    onBreak: false,
+                    workdayComplete: true,
+                    balanced: cycle.balanced
+                ),
+                [.workdayComplete, .pause]
+            )
+        }
+
         let nextBreakAt = (cycle.breaksCompleted + 1) * segmentSeconds
-        guard wholeSeconds(total) >= nextBreakAt else { return (cycle, []) }
+        guard totalSeconds >= nextBreakAt else { return (cycle, []) }
         return (
-            BreakCycle(breaksCompleted: cycle.breaksCompleted, onBreak: true),
+            BreakCycle(
+                breaksCompleted: cycle.breaksCompleted,
+                onBreak: true,
+                workdayComplete: false,
+                balanced: cycle.balanced
+            ),
             [.notify, .pause]
         )
     }
@@ -55,7 +82,12 @@ enum BreakSchedule {
         let segmentSeconds = wholeSeconds(segment)
         guard segmentSeconds > 0, intervals > 0 else { return nil }
         let maxBreaks = max(0, intervals - 1)
-        let completed = min(wholeSeconds(total) / segmentSeconds, maxBreaks)
+        let totalSeconds = wholeSeconds(total)
+        let workdayAt = intervals * segmentSeconds
+        if totalSeconds >= workdayAt {
+            return BreakCycle(breaksCompleted: maxBreaks, onBreak: false, workdayComplete: true)
+        }
+        let completed = min(totalSeconds / segmentSeconds, maxBreaks)
         return BreakCycle(breaksCompleted: completed, onBreak: false)
     }
 

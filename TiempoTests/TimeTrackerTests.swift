@@ -95,6 +95,32 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB]), 20, accuracy: 0.001)
     }
 
+    func testBalanceBreakTimeSplitsByTrackedShare() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let evenA = TaskItem(name: "Even A", project: project)
+        let evenB = TaskItem(name: "Even B", project: project)
+        let skip = TaskItem(name: "Skip", project: project)
+        context.insert(evenA)
+        context.insert(evenB)
+        context.insert(skip)
+        evenA.accumulated = 3.5 * 3600
+        evenB.accumulated = 3.5 * 3600
+        skip.accumulated = 30
+
+        TimeTracker.balanceBreakTime(tasks: [evenA, evenB, skip], breakTotal: 3600)
+        XCTAssertEqual(evenA.accumulated, 4 * 3600, accuracy: 0.001)
+        XCTAssertEqual(evenB.accumulated, 4 * 3600, accuracy: 0.001)
+        XCTAssertEqual(skip.accumulated, 30, accuracy: 0.001)
+
+        evenA.accumulated = 1.75 * 3600
+        evenB.accumulated = 5.25 * 3600
+        TimeTracker.balanceBreakTime(tasks: [evenA, evenB], breakTotal: 3600)
+        XCTAssertEqual(evenA.accumulated, 2 * 3600, accuracy: 0.001)
+        XCTAssertEqual(evenB.accumulated, 6 * 3600, accuracy: 0.001)
+    }
+
     func testResetAllClearsTimeAndStopsTheRunningTask() throws {
         let context = try makeContext()
         let project = Project(name: "Work")

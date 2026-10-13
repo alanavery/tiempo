@@ -95,8 +95,17 @@ struct TaskListView: View {
                     breakSettingsPresented = true
                 }
                 .accessibilityIdentifier("break-settings")
+                if breaks.monitor.cycle.workdayComplete, !breaks.monitor.cycle.balanced {
+                    Button("Balance", systemImage: "equal.circle", action: balance)
+                        .disabled(!canBalance)
+                        .accessibilityIdentifier("balance")
+                }
                 if breaks.monitor.cycle.onBreak {
                     Text("On a break")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if breaks.monitor.cycle.workdayComplete {
+                    Text(breaks.monitor.cycle.balanced ? "Balanced" : "Workday complete")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -130,10 +139,19 @@ struct TaskListView: View {
         tasks.contains { $0.accumulated > 0 || $0.isRunning }
     }
 
+    private var canBalance: Bool {
+        breaks.monitor.canBalance
+            && tasks.contains { TimeTracker.elapsed($0) >= 60 }
+    }
+
     private func resetAll() {
         try? TimeTracker.resetAll(in: modelContext)
         breaks.monitor.resetCycle()
         try? modelContext.save()
+    }
+
+    private func balance() {
+        breaks.monitor.balance(tasks: tasks, in: modelContext)
     }
 
     private var renamingTask: TaskItem? {

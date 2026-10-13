@@ -34,7 +34,9 @@ final class BreakMonitor {
         }
         cycle = BreakCycle(
             breaksCompleted: defaults.integer(forKey: Keys.completed),
-            onBreak: defaults.bool(forKey: Keys.onBreak)
+            onBreak: defaults.bool(forKey: Keys.onBreak),
+            workdayComplete: defaults.bool(forKey: Keys.workdayComplete),
+            balanced: defaults.bool(forKey: Keys.balanced)
         )
         settingsNeedSnap = false
     }
@@ -45,6 +47,14 @@ final class BreakMonitor {
             intervals: intervals,
             breakMinutes: breakMinutes
         )
+    }
+
+    var totalBreakTime: TimeInterval {
+        BreakSchedule.totalBreakTime(intervals: intervals, breakMinutes: breakMinutes)
+    }
+
+    var canBalance: Bool {
+        cycle.workdayComplete && !cycle.balanced && totalBreakTime > 0
     }
 
     func tick(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
@@ -70,6 +80,9 @@ final class BreakMonitor {
         if signals.contains(.notify) {
             postBreakNotification()
         }
+        if signals.contains(.workdayComplete) {
+            postWorkdayNotification()
+        }
         if signals.contains(.pause) {
             pauseRunningTasks(at: date, in: context)
         }
@@ -77,7 +90,22 @@ final class BreakMonitor {
 
     func endBreak() {
         guard cycle.onBreak else { return }
-        cycle = BreakCycle(breaksCompleted: cycle.breaksCompleted + 1, onBreak: false)
+        cycle = BreakCycle(
+            breaksCompleted: cycle.breaksCompleted + 1,
+            onBreak: false,
+            workdayComplete: false,
+            balanced: false
+        )
+        storeCycle()
+    }
+
+    func balance(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
+        guard canBalance else { return }
+        pauseRunningTasks(at: date, in: context)
+        let current = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? tasks
+        TimeTracker.balanceBreakTime(tasks: current, breakTotal: totalBreakTime, at: date)
+        try? context.save()
+        cycle.balanced = true
         storeCycle()
     }
 
@@ -114,6 +142,8 @@ final class BreakMonitor {
     private func storeCycle() {
         defaults.set(cycle.breaksCompleted, forKey: Keys.completed)
         defaults.set(cycle.onBreak, forKey: Keys.onBreak)
+        defaults.set(cycle.workdayComplete, forKey: Keys.workdayComplete)
+        defaults.set(cycle.balanced, forKey: Keys.balanced)
     }
 
     private func requestNotificationPermission() {
@@ -132,6 +162,18 @@ final class BreakMonitor {
             content.body = "Timers paused. Start a timer when you are ready for the next interval."
         }
         content.sound = .default
+        post(content)
+    }
+
+    private func postWorkdayNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Workday complete"
+        content.body = "All intervals are done. Use Balance to divide today's break time across your tasks."
+        content.sound = .default
+        post(content)
+    }
+
+    private func post(_ content: UNMutableNotificationContent) {
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         Task {
             try? await UNUserNotificationCenter.current().add(request)
@@ -144,5 +186,7 @@ final class BreakMonitor {
         static let breakMinutes = "break.breakMinutes"
         static let completed = "break.completed"
         static let onBreak = "break.onBreak"
+        static let workdayComplete = "break.workdayComplete"
+        static let balanced = "break.balanced"
     }
 }

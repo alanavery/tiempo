@@ -9,6 +9,7 @@ final class BreakScheduleTests: XCTestCase {
             BreakSchedule.segmentLength(workdayHours: 8, intervals: 5, breakMinutes: 15)
         )
         XCTAssertEqual(length, 84 * 60, accuracy: 0.001)
+        XCTAssertEqual(BreakSchedule.totalBreakTime(intervals: 5, breakMinutes: 15), 60 * 60, accuracy: 0.001)
     }
 
     func testSegmentLengthRejectsBreaksThatDoNotFit() {
@@ -21,11 +22,23 @@ final class BreakScheduleTests: XCTestCase {
         var cycle = BreakCycle()
 
         (cycle, _) = expectNoSignal(total: segment - 1, cycle: cycle)
-        (cycle, _) = expect(total: segment, cycle: cycle, signals: [.notify, .pause], onBreak: true, completed: 0)
+        (cycle, _) = expect(
+            total: segment,
+            cycle: cycle,
+            signals: [.notify, .pause],
+            onBreak: true,
+            completed: 0
+        )
 
         cycle = BreakCycle(breaksCompleted: 1, onBreak: false)
         (cycle, _) = expectNoSignal(total: 2 * segment - 1, cycle: cycle)
-        (cycle, _) = expect(total: 2 * segment, cycle: cycle, signals: [.notify, .pause], onBreak: true, completed: 1)
+        (cycle, _) = expect(
+            total: 2 * segment,
+            cycle: cycle,
+            signals: [.notify, .pause],
+            onBreak: true,
+            completed: 1
+        )
     }
 
     func testBreakStaysUntilEndedByTheCaller() {
@@ -40,7 +53,7 @@ final class BreakScheduleTests: XCTestCase {
         XCTAssertEqual(signals, [])
     }
 
-    func testNoBreakAfterTheFinalInterval() {
+    func testWorkdayCompletesAfterTheFinalInterval() {
         let afterLastBreak = BreakCycle(breaksCompleted: 4, onBreak: false)
         let (cycle, signals) = BreakSchedule.advance(
             total: 5 * segment,
@@ -48,7 +61,22 @@ final class BreakScheduleTests: XCTestCase {
             intervals: 5,
             cycle: afterLastBreak
         )
-        XCTAssertEqual(cycle, afterLastBreak)
+        XCTAssertEqual(
+            cycle,
+            BreakCycle(breaksCompleted: 4, onBreak: false, workdayComplete: true)
+        )
+        XCTAssertEqual(signals, [.workdayComplete, .pause])
+    }
+
+    func testWorkdayCompleteDoesNotSignalAgain() {
+        let complete = BreakCycle(breaksCompleted: 4, onBreak: false, workdayComplete: true)
+        let (cycle, signals) = BreakSchedule.advance(
+            total: 5 * segment + 100,
+            segment: segment,
+            intervals: 5,
+            cycle: complete
+        )
+        XCTAssertEqual(cycle, complete)
         XCTAssertEqual(signals, [])
     }
 
@@ -69,7 +97,7 @@ final class BreakScheduleTests: XCTestCase {
         XCTAssertEqual(again, [])
     }
 
-    func testPhaseLocatesCompletedSegmentsWithoutReenteringABreak() {
+    func testPhaseLocatesCompletedSegmentsAndWorkday() {
         XCTAssertEqual(
             BreakSchedule.phase(total: segment - 1, segment: segment, intervals: 5),
             BreakCycle()
@@ -84,7 +112,7 @@ final class BreakScheduleTests: XCTestCase {
         )
         XCTAssertEqual(
             BreakSchedule.phase(total: 5 * segment, segment: segment, intervals: 5),
-            BreakCycle(breaksCompleted: 4, onBreak: false)
+            BreakCycle(breaksCompleted: 4, onBreak: false, workdayComplete: true)
         )
     }
 

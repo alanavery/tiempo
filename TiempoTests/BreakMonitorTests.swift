@@ -38,6 +38,42 @@ final class BreakMonitorTests: XCTestCase {
         XCTAssertEqual(taskB.project?.persistentModelID, project.persistentModelID)
     }
 
+    func testWorkdayCompletionPausesAndBalanceSplitsBreakTime() throws {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        defaults.set(0.05, forKey: "break.workdayHours")
+        defaults.set(2, forKey: "break.intervals")
+        defaults.set(1.0, forKey: "break.breakMinutes")
+        defaults.set(1, forKey: "break.completed")
+        defaults.set(false, forKey: "break.onBreak")
+        let day = BreakMonitor(defaults: defaults)
+        XCTAssertEqual(day.segmentLength ?? 0, 60, accuracy: 0.001)
+        XCTAssertEqual(day.totalBreakTime, 60, accuracy: 0.001)
+        XCTAssertEqual(day.cycle.breaksCompleted, 1)
+
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let taskA = TaskItem(name: "Task 1", project: project)
+        let taskB = TaskItem(name: "Task 2", project: project)
+        context.insert(taskA)
+        context.insert(taskB)
+        taskA.accumulated = 60
+        taskB.accumulated = 60
+        try context.save()
+
+        day.tick(tasks: [taskA, taskB], at: .now, in: context)
+
+        XCTAssertTrue(day.cycle.workdayComplete)
+        XCTAssertTrue(day.canBalance)
+
+        day.balance(tasks: [taskA, taskB], in: context)
+
+        XCTAssertEqual(taskA.accumulated, 90, accuracy: 0.001)
+        XCTAssertEqual(taskB.accumulated, 90, accuracy: 0.001)
+        XCTAssertTrue(day.cycle.balanced)
+        XCTAssertFalse(day.canBalance)
+    }
+
     func testStartingATimerEndsTheBreak() throws {
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
         defaults.set(8.0, forKey: "break.workdayHours")

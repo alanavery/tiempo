@@ -38,4 +38,18 @@ enum TimeTracker {
             task.runningSince = nil
         }
     }
+
+    static func balanceBreakTime(tasks: [TaskItem], breakTotal: TimeInterval, at now: Date = .now) {
+        guard breakTotal > 0 else { return }
+        let eligible = tasks.filter { elapsed($0, at: now) >= 60 }
+        let weightSum = eligible.reduce(0) { $0 + elapsed($1, at: now) }
+        guard weightSum > 0 else { return }
+        for task in eligible {
+            let share = elapsed(task, at: now) / weightSum
+            if task.runningSince != nil {
+                pause(task, at: now)
+            }
+            task.accumulated += breakTotal * share
+        }
+    }
 }
