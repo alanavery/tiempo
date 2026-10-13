@@ -6,9 +6,11 @@ import XCTest
 final class BreakMonitorTests: XCTestCase {
     func testPausingAtABreakKeepsProjectsAndTasks() throws {
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
-        defaults.set(1.0, forKey: "break.interval")
-        defaults.set(0.0, forKey: "break.duration")
+        defaults.set(2.0 / 3600.0, forKey: "break.workdayHours")
+        defaults.set(2, forKey: "break.intervals")
+        defaults.set(0.0, forKey: "break.breakMinutes")
         let monitor = BreakMonitor(defaults: defaults)
+        XCTAssertEqual(monitor.segmentLength ?? 0, 1, accuracy: 0.001)
 
         let context = try makeContext()
         let project = Project(name: "Work")
@@ -31,8 +33,27 @@ final class BreakMonitorTests: XCTestCase {
         XCTAssertEqual(projects.first?.name, "Work")
         XCTAssertEqual(tasks.count, 2)
         XCTAssertNil(taskA.runningSince)
+        XCTAssertTrue(monitor.cycle.onBreak)
         XCTAssertEqual(taskA.project?.persistentModelID, project.persistentModelID)
         XCTAssertEqual(taskB.project?.persistentModelID, project.persistentModelID)
+    }
+
+    func testStartingATimerEndsTheBreak() throws {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        defaults.set(8.0, forKey: "break.workdayHours")
+        defaults.set(5, forKey: "break.intervals")
+        defaults.set(15.0, forKey: "break.breakMinutes")
+        defaults.set(true, forKey: "break.onBreak")
+        defaults.set(0, forKey: "break.completed")
+        let monitor = BreakMonitor(defaults: defaults)
+        XCTAssertTrue(monitor.cycle.onBreak)
+
+        monitor.endBreak()
+
+        XCTAssertFalse(monitor.cycle.onBreak)
+        XCTAssertEqual(monitor.cycle.breaksCompleted, 1)
+        XCTAssertFalse(defaults.bool(forKey: "break.onBreak"))
+        XCTAssertEqual(defaults.integer(forKey: "break.completed"), 1)
     }
 
     private func makeContext() throws -> ModelContext {

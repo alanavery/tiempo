@@ -11,61 +11,56 @@ enum BreakSignal: Equatable {
 }
 
 enum BreakSchedule {
+    static func segmentLength(
+        workdayHours: Double,
+        intervals: Int,
+        breakMinutes: Double
+    ) -> TimeInterval? {
+        guard intervals > 0, workdayHours > 0 else { return nil }
+        let workdayMinutes = workdayHours * 60
+        let breakTotal = Double(max(0, intervals - 1)) * max(0, breakMinutes)
+        guard workdayMinutes > breakTotal else { return nil }
+        let segmentMinutes = (workdayMinutes - breakTotal) / Double(intervals)
+        guard segmentMinutes > 0 else { return nil }
+        return segmentMinutes * 60
+    }
+
     static func advance(
         total: TimeInterval,
-        interval: TimeInterval,
-        breakDuration: TimeInterval,
+        segment: TimeInterval,
+        intervals: Int,
         cycle: BreakCycle
     ) -> (BreakCycle, [BreakSignal]) {
-        let totalSeconds = wholeSeconds(total)
-        let intervalSeconds = wholeSeconds(interval)
-        guard intervalSeconds > 0 else { return (cycle, []) }
-        let breakSeconds = wholeSeconds(breakDuration)
-
-        if cycle.onBreak {
-            let pauseAt = (cycle.breaksCompleted + 1) * (intervalSeconds + breakSeconds)
-            guard totalSeconds >= pauseAt else { return (cycle, []) }
-            return (BreakCycle(breaksCompleted: cycle.breaksCompleted + 1, onBreak: false), [.pause])
+        let segmentSeconds = wholeSeconds(segment)
+        guard segmentSeconds > 0, intervals > 0 else { return (cycle, []) }
+        let maxBreaks = intervals - 1
+        guard maxBreaks > 0 else { return (cycle, []) }
+        if cycle.onBreak || cycle.breaksCompleted >= maxBreaks {
+            return (cycle, [])
         }
 
-        let notifyAt = (cycle.breaksCompleted + 1) * intervalSeconds + cycle.breaksCompleted * breakSeconds
-        guard totalSeconds >= notifyAt else { return (cycle, []) }
-        if breakSeconds == 0 || totalSeconds >= notifyAt + breakSeconds {
-            let signals: [BreakSignal] = breakSeconds == 0 ? [.notify, .pause] : [.pause]
-            return (BreakCycle(breaksCompleted: cycle.breaksCompleted + 1, onBreak: false), signals)
-        }
-        return (BreakCycle(breaksCompleted: cycle.breaksCompleted, onBreak: true), [.notify])
+        let nextBreakAt = (cycle.breaksCompleted + 1) * segmentSeconds
+        guard wholeSeconds(total) >= nextBreakAt else { return (cycle, []) }
+        return (
+            BreakCycle(breaksCompleted: cycle.breaksCompleted, onBreak: true),
+            [.notify, .pause]
+        )
     }
 
     static func phase(
         total: TimeInterval,
-        interval: TimeInterval,
-        breakDuration: TimeInterval
+        segment: TimeInterval,
+        intervals: Int
     ) -> BreakCycle? {
-        let totalSeconds = wholeSeconds(total)
-        let intervalSeconds = wholeSeconds(interval)
-        guard intervalSeconds > 0 else { return nil }
-        let breakSeconds = wholeSeconds(breakDuration)
-        if totalSeconds < intervalSeconds {
-            return BreakCycle()
-        }
-        if breakSeconds == 0 {
-            return BreakCycle(breaksCompleted: totalSeconds / intervalSeconds, onBreak: false)
-        }
-        let since = totalSeconds - intervalSeconds
-        let cycle = breakSeconds + intervalSeconds
-        let index = since / cycle
-        let offset = since - index * cycle
-        if offset < breakSeconds {
-            return BreakCycle(breaksCompleted: index, onBreak: true)
-        }
-        return BreakCycle(breaksCompleted: index + 1, onBreak: false)
+        let segmentSeconds = wholeSeconds(segment)
+        guard segmentSeconds > 0, intervals > 0 else { return nil }
+        let maxBreaks = max(0, intervals - 1)
+        let completed = min(wholeSeconds(total) / segmentSeconds, maxBreaks)
+        return BreakCycle(breaksCompleted: completed, onBreak: false)
     }
 
-    static func notifyTotal(breaksCompleted: Int, interval: TimeInterval, breakDuration: TimeInterval) -> TimeInterval {
-        let intervalSeconds = wholeSeconds(interval)
-        let breakSeconds = wholeSeconds(breakDuration)
-        return TimeInterval((breaksCompleted + 1) * intervalSeconds + breaksCompleted * breakSeconds)
+    static func notifyTotal(breaksCompleted: Int, segment: TimeInterval) -> TimeInterval {
+        TimeInterval((breaksCompleted + 1) * wholeSeconds(segment))
     }
 
     private static func wholeSeconds(_ interval: TimeInterval) -> Int {

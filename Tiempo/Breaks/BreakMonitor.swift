@@ -5,11 +5,15 @@ import UserNotifications
 @MainActor
 @Observable
 final class BreakMonitor {
-    var interval: TimeInterval {
+    var workdayHours: Double {
         didSet { storeSettings(changed: true) }
     }
 
-    var breakDuration: TimeInterval {
+    var intervals: Int {
+        didSet { storeSettings(changed: true) }
+    }
+
+    var breakMinutes: Double {
         didSet { storeSettings(changed: true) }
     }
 
@@ -19,32 +23,45 @@ final class BreakMonitor {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        interval = defaults.double(forKey: Keys.interval)
-        breakDuration = defaults.double(forKey: Keys.breakDuration)
+        if defaults.object(forKey: Keys.workdayHours) == nil {
+            workdayHours = 8
+            intervals = 5
+            breakMinutes = 15
+        } else {
+            workdayHours = defaults.double(forKey: Keys.workdayHours)
+            intervals = defaults.integer(forKey: Keys.intervals)
+            breakMinutes = defaults.double(forKey: Keys.breakMinutes)
+        }
         cycle = BreakCycle(
             breaksCompleted: defaults.integer(forKey: Keys.completed),
             onBreak: defaults.bool(forKey: Keys.onBreak)
+        )
+        settingsNeedSnap = false
+    }
+
+    var segmentLength: TimeInterval? {
+        BreakSchedule.segmentLength(
+            workdayHours: workdayHours,
+            intervals: intervals,
+            breakMinutes: breakMinutes
         )
     }
 
     func tick(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
         let total = TimeTracker.totalElapsed(tasks, at: date)
+        guard let segment = segmentLength else { return }
+
         if settingsNeedSnap {
             settingsNeedSnap = false
-            let next = BreakSchedule.phase(total: total, interval: interval, breakDuration: breakDuration) ?? BreakCycle()
-            let enteredBreak = next.onBreak && !cycle.onBreak
-            cycle = next
+            cycle = BreakSchedule.phase(total: total, segment: segment, intervals: intervals) ?? BreakCycle()
             storeCycle()
-            if enteredBreak {
-                postBreakNotification()
-            }
             return
         }
 
         let (next, signals) = BreakSchedule.advance(
             total: total,
-            interval: interval,
-            breakDuration: breakDuration,
+            segment: segment,
+            intervals: intervals,
             cycle: cycle
         )
         guard next != cycle else { return }
@@ -54,16 +71,14 @@ final class BreakMonitor {
             postBreakNotification()
         }
         if signals.contains(.pause) {
-            context.rollback()
-            let running = (try? context.fetch(
-                FetchDescriptor<TaskItem>(predicate: #Predicate { $0.runningSince != nil })
-            )) ?? []
-            guard !running.isEmpty else { return }
-            for task in running {
-                TimeTracker.pause(task, at: date)
-            }
-            try? context.save()
+            pauseRunningTasks(at: date, in: context)
         }
+    }
+
+    func endBreak() {
+        guard cycle.onBreak else { return }
+        cycle = BreakCycle(breaksCompleted: cycle.breaksCompleted + 1, onBreak: false)
+        storeCycle()
     }
 
     func resetCycle() {
@@ -72,12 +87,25 @@ final class BreakMonitor {
         storeCycle()
     }
 
+    private func pauseRunningTasks(at date: Date, in context: ModelContext) {
+        context.rollback()
+        let running = (try? context.fetch(
+            FetchDescriptor<TaskItem>(predicate: #Predicate { $0.runningSince != nil })
+        )) ?? []
+        guard !running.isEmpty else { return }
+        for task in running {
+            TimeTracker.pause(task, at: date)
+        }
+        try? context.save()
+    }
+
     private func storeSettings(changed: Bool) {
-        defaults.set(interval, forKey: Keys.interval)
-        defaults.set(breakDuration, forKey: Keys.breakDuration)
+        defaults.set(workdayHours, forKey: Keys.workdayHours)
+        defaults.set(intervals, forKey: Keys.intervals)
+        defaults.set(breakMinutes, forKey: Keys.breakMinutes)
         if changed {
             settingsNeedSnap = true
-            if interval > 0 {
+            if segmentLength != nil {
                 requestNotificationPermission()
             }
         }
@@ -97,10 +125,11 @@ final class BreakMonitor {
     private func postBreakNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Time for a break"
-        if breakDuration > 0 {
-            content.body = "Your timer will keep running for \(DurationFormat.string(from: breakDuration)), then pause."
+        let minutes = max(0, Int(breakMinutes.rounded(.down)))
+        if minutes > 0 {
+            content.body = "Timers paused. Take a \(minutes)-minute break, then start a timer for the next interval."
         } else {
-            content.body = "Your timer will pause now."
+            content.body = "Timers paused. Start a timer when you are ready for the next interval."
         }
         content.sound = .default
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
@@ -110,8 +139,9 @@ final class BreakMonitor {
     }
 
     private enum Keys {
-        static let interval = "break.interval"
-        static let breakDuration = "break.duration"
+        static let workdayHours = "break.workdayHours"
+        static let intervals = "break.intervals"
+        static let breakMinutes = "break.breakMinutes"
         static let completed = "break.completed"
         static let onBreak = "break.onBreak"
     }

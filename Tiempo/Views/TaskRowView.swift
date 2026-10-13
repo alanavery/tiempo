@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TaskRowView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(BreakCoordinator.self) private var breaks
     var task: TaskItem
     var showsProject: Bool
 
@@ -63,6 +64,7 @@ struct TaskRowView: View {
         if task.isRunning {
             TimeTracker.pause(task)
         } else {
+            breaks.monitor.endBreak()
             try? TimeTracker.start(task, in: modelContext)
         }
         try? modelContext.save()
