@@ -29,21 +29,27 @@ struct TaskListView: View {
                 )
             } else {
                 List {
-                    ForEach(visibleTasks) { task in
-                        TaskRowView(task: task, showsProject: selection == .all)
-                            .contextMenu {
-                                Button("Rename") {
-                                    renamingTaskID = task.persistentModelID
-                                }
-                                Button("Edit Time") {
-                                    editingTimeTaskID = task.persistentModelID
-                                }
-                                Button("Delete", role: .destructive) {
-                                    delete(task)
-                                }
+                    ForEach(taskGroups) { group in
+                        Section(group.title) {
+                            ForEach(group.tasks) { task in
+                                TaskRowView(task: task, showsProject: false)
+                                    .contextMenu {
+                                        Button("Rename") {
+                                            renamingTaskID = task.persistentModelID
+                                        }
+                                        Button("Edit Time") {
+                                            editingTimeTaskID = task.persistentModelID
+                                        }
+                                        Button("Delete", role: .destructive) {
+                                            delete(task)
+                                        }
+                                    }
                             }
+                            .onMove { source, destination in
+                                moveTasks(in: group, from: source, to: destination)
+                            }
+                        }
                     }
-                    .onMove(perform: moveTasks)
                 }
                 .listStyle(.inset)
             }
@@ -94,6 +100,27 @@ struct TaskListView: View {
             tasks
         case .project(let id):
             tasks.filter { $0.project?.persistentModelID == id }
+        }
+    }
+
+    private var taskGroups: [TaskGroup] {
+        switch selection {
+        case .project(let id):
+            guard let project = projects.first(where: { $0.persistentModelID == id }) else { return [] }
+            let groupTasks = visibleTasks
+            guard !groupTasks.isEmpty else { return [] }
+            return [TaskGroup(id: project.persistentModelID, title: project.name, tasks: groupTasks)]
+        case .all:
+            var groups = projects.compactMap { project -> TaskGroup? in
+                let groupTasks = tasks.filter { $0.project?.persistentModelID == project.persistentModelID }
+                guard !groupTasks.isEmpty else { return nil }
+                return TaskGroup(id: project.persistentModelID, title: project.name, tasks: groupTasks)
+            }
+            let orphaned = tasks.filter { $0.project == nil }
+            if !orphaned.isEmpty {
+                groups.append(TaskGroup(id: nil, title: "No Project", tasks: orphaned))
+            }
+            return groups
         }
     }
 
@@ -199,10 +226,10 @@ struct TaskListView: View {
         )
     }
 
-    private func moveTasks(from source: IndexSet, to destination: Int) {
+    private func moveTasks(in group: TaskGroup, from source: IndexSet, to destination: Int) {
         let ordered = SortOrder.movingVisible(
             all: tasks,
-            visible: visibleTasks,
+            visible: group.tasks,
             from: source,
             to: destination
         ) { $0.persistentModelID == $1.persistentModelID }
@@ -217,3 +244,10 @@ struct TaskListView: View {
         try? modelContext.save()
     }
 }
+
+private struct TaskGroup: Identifiable {
+    var id: PersistentIdentifier?
+    var title: String
+    var tasks: [TaskItem]
+}
+
