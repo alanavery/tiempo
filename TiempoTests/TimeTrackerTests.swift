@@ -121,6 +121,59 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(evenB.accumulated, 6 * 3600, accuracy: 0.001)
     }
 
+    func testRoundUpToQuarterHour() {
+        XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(0), 0, accuracy: 0.001)
+        XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(3 * 60 + 53), 15 * 60, accuracy: 0.001)
+        XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(28 * 60 + 10), 30 * 60, accuracy: 0.001)
+        XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(30 * 60), 30 * 60, accuracy: 0.001)
+    }
+
+    func testBalanceWorkdayRoundsAndTrimsToWorkday() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let short = TaskItem(name: "Short", project: project)
+        let long = TaskItem(name: "Long", project: project)
+        context.insert(short)
+        context.insert(long)
+        short.accumulated = 1.75 * 3600
+        long.accumulated = 5.25 * 3600
+
+        TimeTracker.balanceWorkday(
+            tasks: [short, long],
+            breakTotal: 3600,
+            workday: 8 * 3600
+        )
+
+        XCTAssertEqual(short.accumulated + long.accumulated, 8 * 3600, accuracy: 0.001)
+        XCTAssertEqual(short.accumulated.truncatingRemainder(dividingBy: 15 * 60), 0, accuracy: 0.001)
+        XCTAssertEqual(long.accumulated.truncatingRemainder(dividingBy: 15 * 60), 0, accuracy: 0.001)
+        XCTAssertEqual(short.accumulated, 2 * 3600, accuracy: 0.001)
+        XCTAssertEqual(long.accumulated, 6 * 3600, accuracy: 0.001)
+    }
+
+    func testBalanceWorkdayTrimsLongestTaskWhenRoundingOvershoots() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let a = TaskItem(name: "A", project: project)
+        let b = TaskItem(name: "B", project: project)
+        context.insert(a)
+        context.insert(b)
+        a.accumulated = 28 * 60 + 10
+        b.accumulated = 3 * 60 + 53
+
+        TimeTracker.balanceWorkday(
+            tasks: [a, b],
+            breakTotal: 0,
+            workday: 30 * 60
+        )
+
+        XCTAssertEqual(a.accumulated + b.accumulated, 30 * 60, accuracy: 0.001)
+        XCTAssertEqual(a.accumulated, 15 * 60, accuracy: 0.001)
+        XCTAssertEqual(b.accumulated, 15 * 60, accuracy: 0.001)
+    }
+
     func testResetAllClearsTimeAndStopsTheRunningTask() throws {
         let context = try makeContext()
         let project = Project(name: "Work")

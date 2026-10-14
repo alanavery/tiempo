@@ -39,6 +39,22 @@ enum TimeTracker {
         }
     }
 
+    static let quarterHour: TimeInterval = 15 * 60
+
+    static func balanceWorkday(
+        tasks: [TaskItem],
+        breakTotal: TimeInterval,
+        workday: TimeInterval,
+        at now: Date = .now
+    ) {
+        for task in tasks where task.runningSince != nil {
+            pause(task, at: now)
+        }
+        balanceBreakTime(tasks: tasks, breakTotal: breakTotal, at: now)
+        roundUpToQuarterHour(tasks: tasks)
+        trimToWorkday(tasks: tasks, workday: workday)
+    }
+
     static func balanceBreakTime(tasks: [TaskItem], breakTotal: TimeInterval, at now: Date = .now) {
         guard breakTotal > 0 else { return }
         let eligible = tasks.filter { elapsed($0, at: now) >= 60 }
@@ -51,5 +67,28 @@ enum TimeTracker {
             }
             task.accumulated += breakTotal * share
         }
+    }
+
+    static func roundUpToQuarterHour(tasks: [TaskItem]) {
+        for task in tasks {
+            task.runningSince = nil
+            task.accumulated = roundedUpToQuarterHour(task.accumulated)
+        }
+    }
+
+    static func trimToWorkday(tasks: [TaskItem], workday: TimeInterval) {
+        let limit = max(0, workday)
+        while tasks.reduce(0, { $0 + $1.accumulated }) > limit {
+            guard let longest = tasks.max(by: { $0.accumulated < $1.accumulated }),
+                  longest.accumulated >= quarterHour
+            else { return }
+            longest.accumulated -= quarterHour
+        }
+    }
+
+    static func roundedUpToQuarterHour(_ interval: TimeInterval) -> TimeInterval {
+        let seconds = max(0, interval)
+        guard seconds > 0 else { return 0 }
+        return (seconds / quarterHour).rounded(.up) * quarterHour
     }
 }

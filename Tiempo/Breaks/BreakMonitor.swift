@@ -99,11 +99,20 @@ final class BreakMonitor {
         storeCycle()
     }
 
+    var workdayLength: TimeInterval {
+        max(0, workdayHours) * 3600
+    }
+
     func balance(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
         guard canBalance else { return }
         pauseRunningTasks(at: date, in: context)
         let current = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? tasks
-        TimeTracker.balanceBreakTime(tasks: current, breakTotal: totalBreakTime, at: date)
+        TimeTracker.balanceWorkday(
+            tasks: current,
+            breakTotal: totalBreakTime,
+            workday: workdayLength,
+            at: date
+        )
         try? context.save()
         cycle.balanced = true
         storeCycle()
