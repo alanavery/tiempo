@@ -8,7 +8,7 @@ enum SidebarItem: Hashable {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Project.createdAt) private var projects: [Project]
+    @Query(sort: \Project.sortIndex) private var projects: [Project]
     @State private var selection: SidebarItem = .all
     @State private var newProjectPresented = false
     @State private var newTaskPresented = false

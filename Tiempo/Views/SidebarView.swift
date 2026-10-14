@@ -33,6 +33,7 @@ struct SidebarView: View {
                                 }
                             }
                     }
+                    .onMove(perform: moveProjects)
                 }
             }
         }
@@ -57,6 +58,15 @@ struct SidebarView: View {
             .padding(.vertical, 8)
             .accessibilityIdentifier("new-project")
         }
+    }
+
+    private func moveProjects(from source: IndexSet, to destination: Int) {
+        var ordered = projects
+        ordered.move(fromOffsets: source, toOffset: destination)
+        SortOrder.reindex(ordered) { project, index in
+            project.sortIndex = index
+        }
+        try? modelContext.save()
     }
 
     private var renamingProject: Project? {

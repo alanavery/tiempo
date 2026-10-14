@@ -64,7 +64,9 @@ struct NewTaskSheet: View {
 
     private func create() {
         guard let project = selectedProject, !trimmedName.isEmpty else { return }
-        modelContext.insert(TaskItem(name: trimmedName, project: project))
+        let tasks = (try? modelContext.fetch(FetchDescriptor<TaskItem>())) ?? []
+        let nextIndex = (tasks.map(\.sortIndex).max() ?? -1) + 1
+        modelContext.insert(TaskItem(name: trimmedName, project: project, sortIndex: nextIndex))
         try? modelContext.save()
         dismiss()
     }

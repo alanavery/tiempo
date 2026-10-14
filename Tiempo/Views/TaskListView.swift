@@ -3,7 +3,7 @@ import SwiftUI
 
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \TaskItem.createdAt) private var tasks: [TaskItem]
+    @Query(sort: \TaskItem.sortIndex) private var tasks: [TaskItem]
     @Environment(BreakCoordinator.self) private var breaks
     @State private var resetConfirmationPresented = false
     @State private var breakSettingsPresented = false
@@ -28,19 +28,22 @@ struct TaskListView: View {
                     description: Text("Create a task and start tracking time.")
                 )
             } else {
-                List(visibleTasks) { task in
-                    TaskRowView(task: task, showsProject: selection == .all)
-                        .contextMenu {
-                            Button("Rename") {
-                                renamingTaskID = task.persistentModelID
+                List {
+                    ForEach(visibleTasks) { task in
+                        TaskRowView(task: task, showsProject: selection == .all)
+                            .contextMenu {
+                                Button("Rename") {
+                                    renamingTaskID = task.persistentModelID
+                                }
+                                Button("Edit Time") {
+                                    editingTimeTaskID = task.persistentModelID
+                                }
+                                Button("Delete", role: .destructive) {
+                                    delete(task)
+                                }
                             }
-                            Button("Edit Time") {
-                                editingTimeTaskID = task.persistentModelID
-                            }
-                            Button("Delete", role: .destructive) {
-                                delete(task)
-                            }
-                        }
+                    }
+                    .onMove(perform: moveTasks)
                 }
                 .listStyle(.inset)
             }
@@ -194,6 +197,19 @@ struct TaskListView: View {
                 }
             }
         )
+    }
+
+    private func moveTasks(from source: IndexSet, to destination: Int) {
+        let ordered = SortOrder.movingVisible(
+            all: tasks,
+            visible: visibleTasks,
+            from: source,
+            to: destination
+        ) { $0.persistentModelID == $1.persistentModelID }
+        SortOrder.reindex(ordered) { task, index in
+            task.sortIndex = index
+        }
+        try? modelContext.save()
     }
 
     private func delete(_ task: TaskItem) {

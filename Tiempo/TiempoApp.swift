@@ -29,6 +29,7 @@ struct TiempoApp: App {
             }
         }
         container.mainContext.autosaveEnabled = false
+        Self.normalizeSortOrder(in: container.mainContext)
         breaks.start(context: container.mainContext)
     }
 
@@ -64,6 +65,36 @@ struct TiempoApp: App {
             for: Schema([Project.self, TaskItem.self]),
             configurations: [configuration]
         )
+    }
+
+    private static func normalizeSortOrder(in context: ModelContext) {
+        do {
+            let projects = try context.fetch(
+                FetchDescriptor<Project>(sortBy: [
+                    SortDescriptor(\.sortIndex),
+                    SortDescriptor(\.createdAt),
+                ])
+            )
+            SortOrder.reindex(projects) { project, index in
+                if project.sortIndex != index {
+                    project.sortIndex = index
+                }
+            }
+
+            let tasks = try context.fetch(
+                FetchDescriptor<TaskItem>(sortBy: [
+                    SortDescriptor(\.sortIndex),
+                    SortDescriptor(\.createdAt),
+                ])
+            )
+            SortOrder.reindex(tasks) { task, index in
+                if task.sortIndex != index {
+                    task.sortIndex = index
+                }
+            }
+
+            try context.save()
+        } catch {}
     }
 
     private static func quarantineStore(at url: URL) {

@@ -40,7 +40,9 @@ struct NewProjectSheet: View {
 
     private func create() {
         guard !trimmedName.isEmpty else { return }
-        modelContext.insert(Project(name: trimmedName))
+        let projects = (try? modelContext.fetch(FetchDescriptor<Project>())) ?? []
+        let nextIndex = (projects.map(\.sortIndex).max() ?? -1) + 1
+        modelContext.insert(Project(name: trimmedName, sortIndex: nextIndex))
         try? modelContext.save()
         dismiss()
     }
