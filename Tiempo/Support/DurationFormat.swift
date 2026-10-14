@@ -12,6 +12,17 @@ enum DurationFormat {
         return "\(parts.hours):" + String(format: "%02d", parts.minutes)
     }
 
+    static func timeInterval(from string: String) -> TimeInterval? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let hours = Int(parts[0]), hours >= 0,
+              let minutes = Int(parts[1]), (0..<60).contains(minutes),
+              let seconds = Int(parts[2]), (0..<60).contains(seconds)
+        else { return nil }
+        return TimeInterval(hours * 3600 + minutes * 60 + seconds)
+    }
+
     private static func parts(of interval: TimeInterval) -> (hours: Int, minutes: Int, seconds: Int) {
         let totalSeconds = max(0, Int(interval))
         return (

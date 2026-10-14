@@ -22,6 +22,11 @@ enum TimeTracker {
         task.runningSince = nil
     }
 
+    static func setElapsed(_ task: TaskItem, to interval: TimeInterval) {
+        task.runningSince = nil
+        task.accumulated = max(0, interval)
+    }
+
     static func elapsed(_ task: TaskItem, at now: Date = .now) -> TimeInterval {
         let running = task.runningSince.map { max(0, now.timeIntervalSince($0)) } ?? 0
         return task.accumulated + running

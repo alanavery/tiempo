@@ -55,6 +55,44 @@ final class TiempoUITests: XCTestCase {
         XCTAssertEqual(review.label, "Start")
     }
 
+    func testEditTaskTime() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitesting"]
+        app.launch()
+
+        let newProject = app.buttons["new-project"]
+        XCTAssertTrue(newProject.waitForExistence(timeout: 5), app.debugDescription)
+        newProject.click()
+        let projectName = app.textFields["project-name"]
+        XCTAssertTrue(projectName.waitForExistence(timeout: 2), app.debugDescription)
+        projectName.click()
+        projectName.typeText("Client")
+        app.buttons["create-project"].click()
+
+        createTask(named: "Design", in: app)
+
+        let task = app.descendants(matching: .any)["task-Design"]
+        XCTAssertTrue(task.waitForExistence(timeout: 2), app.debugDescription)
+        task.rightClick()
+        let editTime = app.menuItems["Edit Time"]
+        XCTAssertTrue(editTime.waitForExistence(timeout: 2), app.debugDescription)
+        editTime.click()
+
+        let field = app.textFields["edit-time"]
+        XCTAssertTrue(field.waitForExistence(timeout: 2), app.debugDescription)
+        field.click()
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("01:15:30")
+        app.buttons["save-edit-time"].click()
+
+        let elapsed = app.staticTexts["elapsed-Design"]
+        XCTAssertTrue(elapsed.waitForExistence(timeout: 2), app.debugDescription)
+        let showsEditedTime = NSPredicate(format: "label == %@ OR value == %@", "01:15:30", "01:15:30")
+        expectation(for: showsEditedTime, evaluatedWith: elapsed)
+        expectation(for: showsEditedTime, evaluatedWith: app.staticTexts["total-elapsed"])
+        waitForExpectations(timeout: 2)
+    }
+
     func testRenameProjectAndTask() {
         let app = XCUIApplication()
         app.launchArguments = ["--uitesting"]

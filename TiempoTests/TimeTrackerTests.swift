@@ -73,6 +73,41 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(TimeTracker.totalElapsed([taskA, taskB], at: now), 14, accuracy: 0.001)
     }
 
+    func testSetElapsedReplacesTrackedTimeAndStopsTheTimer() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let task = TaskItem(name: "Task 1", project: project)
+        context.insert(task)
+
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        try TimeTracker.start(task, at: start, in: context)
+        TimeTracker.setElapsed(task, to: 90 * 60 + 15)
+
+        XCTAssertNil(task.runningSince)
+        XCTAssertEqual(task.accumulated, 90 * 60 + 15, accuracy: 0.001)
+        XCTAssertEqual(
+            TimeTracker.elapsed(task, at: start.addingTimeInterval(1_000)),
+            90 * 60 + 15,
+            accuracy: 0.001
+        )
+    }
+
+    func testDurationFormatParsesHoursMinutesSeconds() throws {
+        XCTAssertEqual(
+            try XCTUnwrap(DurationFormat.timeInterval(from: "01:30:00")),
+            5400,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(DurationFormat.timeInterval(from: "0:05:09")),
+            309,
+            accuracy: 0.001
+        )
+        XCTAssertNil(DurationFormat.timeInterval(from: "1:70:00"))
+        XCTAssertNil(DurationFormat.timeInterval(from: "90:00"))
+    }
+
     func testMenuBarDurationUsesHoursAndMinutes() {
         XCTAssertNil(DurationFormat.menuBarString(from: 0))
         XCTAssertEqual(DurationFormat.menuBarString(from: 45), "0:00")

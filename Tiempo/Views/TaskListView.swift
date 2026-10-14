@@ -8,6 +8,7 @@ struct TaskListView: View {
     @State private var resetConfirmationPresented = false
     @State private var breakSettingsPresented = false
     @State private var renamingTaskID: PersistentIdentifier?
+    @State private var editingTimeTaskID: PersistentIdentifier?
     var selection: SidebarItem
     var projects: [Project]
     var onNewTask: () -> Void
@@ -33,6 +34,9 @@ struct TaskListView: View {
                             Button("Rename") {
                                 renamingTaskID = task.persistentModelID
                             }
+                            Button("Edit Time") {
+                                editingTimeTaskID = task.persistentModelID
+                            }
                             Button("Delete", role: .destructive) {
                                 delete(task)
                             }
@@ -46,6 +50,14 @@ struct TaskListView: View {
             if let task = renamingTask {
                 RenameSheet(title: "Rename Task", name: task.name) { newName in
                     task.name = newName
+                    try? modelContext.save()
+                }
+            }
+        }
+        .sheet(isPresented: editingTimePresented) {
+            if let task = editingTimeTask {
+                EditTimeSheet(elapsed: TimeTracker.elapsed(task)) { newElapsed in
+                    TimeTracker.setElapsed(task, to: newElapsed)
                     try? modelContext.save()
                 }
             }
@@ -164,6 +176,21 @@ struct TaskListView: View {
             set: { isPresented in
                 if !isPresented {
                     renamingTaskID = nil
+                }
+            }
+        )
+    }
+
+    private var editingTimeTask: TaskItem? {
+        tasks.first { $0.persistentModelID == editingTimeTaskID }
+    }
+
+    private var editingTimePresented: Binding<Bool> {
+        Binding(
+            get: { editingTimeTaskID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    editingTimeTaskID = nil
                 }
             }
         )
