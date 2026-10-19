@@ -68,6 +68,67 @@ final class BreakScheduleTests: XCTestCase {
         XCTAssertEqual(signals, [.workdayComplete, .pause])
     }
 
+    func testMeetingTimeShortensOnlyTheFinalAlert() throws {
+        let segmentLength = try XCTUnwrap(
+            BreakSchedule.segmentLength(workdayHours: 8, intervals: 2, breakMinutes: 60)
+        )
+        XCTAssertEqual(segmentLength, 3.5 * 3600, accuracy: 0.001)
+
+        var cycle = BreakCycle()
+        let (atBreak, breakSignals) = BreakSchedule.advance(
+            total: 3.5 * 3600,
+            segment: segmentLength,
+            intervals: 2,
+            meeting: 3600,
+            cycle: cycle
+        )
+        XCTAssertEqual(breakSignals, [.notify, .pause])
+        XCTAssertTrue(atBreak.onBreak)
+
+        cycle = BreakCycle(breaksCompleted: 1, onBreak: false)
+        let (beforeFinal, none) = BreakSchedule.advance(
+            total: 6 * 3600 - 1,
+            segment: segmentLength,
+            intervals: 2,
+            meeting: 3600,
+            cycle: cycle
+        )
+        XCTAssertEqual(none, [])
+        XCTAssertEqual(beforeFinal, cycle)
+
+        let (complete, finalSignals) = BreakSchedule.advance(
+            total: 6 * 3600,
+            segment: segmentLength,
+            intervals: 2,
+            meeting: 3600,
+            cycle: cycle
+        )
+        XCTAssertEqual(finalSignals, [.workdayComplete, .pause])
+        XCTAssertTrue(complete.workdayComplete)
+    }
+
+    func testPhaseHonorsMeetingTimeForWorkdayComplete() {
+        let segmentLength: TimeInterval = 3.5 * 3600
+        XCTAssertEqual(
+            BreakSchedule.phase(
+                total: 3.5 * 3600,
+                segment: segmentLength,
+                intervals: 2,
+                meeting: 3600
+            ),
+            BreakCycle(breaksCompleted: 1, onBreak: false)
+        )
+        XCTAssertEqual(
+            BreakSchedule.phase(
+                total: 6 * 3600,
+                segment: segmentLength,
+                intervals: 2,
+                meeting: 3600
+            ),
+            BreakCycle(breaksCompleted: 1, onBreak: false, workdayComplete: true)
+        )
+    }
+
     func testWorkdayCompleteDoesNotSignalAgain() {
         let complete = BreakCycle(breaksCompleted: 4, onBreak: false, workdayComplete: true)
         let (cycle, signals) = BreakSchedule.advance(

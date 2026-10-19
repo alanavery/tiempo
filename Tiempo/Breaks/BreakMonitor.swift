@@ -17,6 +17,10 @@ final class BreakMonitor {
         didSet { storeSettings(changed: true) }
     }
 
+    var meetingHours: Double {
+        didSet { storeMeeting() }
+    }
+
     private(set) var cycle = BreakCycle()
     private var settingsNeedSnap = false
     private let defaults: UserDefaults
@@ -32,6 +36,7 @@ final class BreakMonitor {
             intervals = defaults.integer(forKey: Keys.intervals)
             breakMinutes = defaults.double(forKey: Keys.breakMinutes)
         }
+        meetingHours = max(0, defaults.double(forKey: Keys.meetingHours))
         cycle = BreakCycle(
             breaksCompleted: defaults.integer(forKey: Keys.completed),
             onBreak: defaults.bool(forKey: Keys.onBreak),
@@ -63,7 +68,12 @@ final class BreakMonitor {
 
         if settingsNeedSnap {
             settingsNeedSnap = false
-            cycle = BreakSchedule.phase(total: total, segment: segment, intervals: intervals) ?? BreakCycle()
+            cycle = BreakSchedule.phase(
+                total: total,
+                segment: segment,
+                intervals: intervals,
+                meeting: meetingLength
+            ) ?? BreakCycle()
             storeCycle()
             return
         }
@@ -72,6 +82,7 @@ final class BreakMonitor {
             total: total,
             segment: segment,
             intervals: intervals,
+            meeting: meetingLength,
             cycle: cycle
         )
         guard next != cycle else { return }
@@ -103,6 +114,14 @@ final class BreakMonitor {
         max(0, workdayHours) * 3600
     }
 
+    var meetingLength: TimeInterval {
+        max(0, meetingHours) * 3600
+    }
+
+    var balancedWorkdayLength: TimeInterval {
+        max(0, workdayLength - meetingLength)
+    }
+
     func balance(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
         guard canBalance else { return }
         pauseRunningTasks(at: date, in: context)
@@ -110,7 +129,7 @@ final class BreakMonitor {
         TimeTracker.balanceWorkday(
             tasks: current,
             breakTotal: totalBreakTime,
-            workday: workdayLength,
+            workday: balancedWorkdayLength,
             at: date
         )
         try? context.save()
@@ -118,8 +137,9 @@ final class BreakMonitor {
         storeCycle()
     }
 
-    func resetCycle() {
+    func resetCycle(meetingHours: Double = 0) {
         settingsNeedSnap = false
+        self.meetingHours = max(0, meetingHours)
         cycle = BreakCycle()
         storeCycle()
     }
@@ -146,6 +166,10 @@ final class BreakMonitor {
                 requestNotificationPermission()
             }
         }
+    }
+
+    private func storeMeeting() {
+        defaults.set(meetingHours, forKey: Keys.meetingHours)
     }
 
     private func storeCycle() {
@@ -193,6 +217,7 @@ final class BreakMonitor {
         static let workdayHours = "break.workdayHours"
         static let intervals = "break.intervals"
         static let breakMinutes = "break.breakMinutes"
+        static let meetingHours = "break.meetingHours"
         static let completed = "break.completed"
         static let onBreak = "break.onBreak"
         static let workdayComplete = "break.workdayComplete"

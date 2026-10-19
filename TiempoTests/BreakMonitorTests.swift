@@ -70,9 +70,51 @@ final class BreakMonitorTests: XCTestCase {
 
         XCTAssertEqual(taskA.accumulated, 30 * 60, accuracy: 0.001)
         XCTAssertEqual(taskB.accumulated, 30 * 60, accuracy: 0.001)
-        XCTAssertEqual(taskA.accumulated + taskB.accumulated, day.workdayLength, accuracy: 0.001)
+        XCTAssertEqual(taskA.accumulated + taskB.accumulated, day.balancedWorkdayLength, accuracy: 0.001)
         XCTAssertTrue(day.cycle.balanced)
         XCTAssertFalse(day.canBalance)
+    }
+
+    func testMeetingTimeShortensFinalAlertAndBalanceTarget() throws {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        defaults.set(8.0, forKey: "break.workdayHours")
+        defaults.set(2, forKey: "break.intervals")
+        defaults.set(60.0, forKey: "break.breakMinutes")
+        let day = BreakMonitor(defaults: defaults)
+        day.resetCycle(meetingHours: 1)
+        XCTAssertEqual(day.segmentLength ?? 0, 3.5 * 3600, accuracy: 0.001)
+        XCTAssertEqual(day.meetingLength, 3600, accuracy: 0.001)
+        XCTAssertEqual(day.balancedWorkdayLength, 7 * 3600, accuracy: 0.001)
+
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let taskA = TaskItem(name: "Task 1", project: project)
+        let taskB = TaskItem(name: "Task 2", project: project)
+        context.insert(taskA)
+        context.insert(taskB)
+        taskA.accumulated = 3.5 * 3600
+        try context.save()
+
+        day.tick(tasks: [taskA, taskB], at: .now, in: context)
+        XCTAssertTrue(day.cycle.onBreak)
+        XCTAssertFalse(day.cycle.workdayComplete)
+
+        day.endBreak()
+        taskA.accumulated = 6 * 3600
+        try context.save()
+        day.tick(tasks: [taskA, taskB], at: .now, in: context)
+
+        XCTAssertTrue(day.cycle.workdayComplete)
+        XCTAssertTrue(day.canBalance)
+
+        day.balance(tasks: [taskA, taskB], in: context)
+        XCTAssertEqual(
+            taskA.accumulated + taskB.accumulated,
+            day.balancedWorkdayLength,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(taskA.accumulated + taskB.accumulated, 7 * 3600, accuracy: 0.001)
     }
 
     func testStartingATimerEndsTheBreak() throws {

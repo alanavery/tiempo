@@ -6,6 +6,7 @@ struct TaskListView: View {
     @Query(sort: \TaskItem.sortIndex) private var tasks: [TaskItem]
     @Environment(BreakCoordinator.self) private var breaks
     @State private var resetConfirmationPresented = false
+    @State private var meetingTimePresented = false
     @State private var breakSettingsPresented = false
     @State private var renamingTaskID: PersistentIdentifier?
     @State private var editingTimeTaskID: PersistentIdentifier?
@@ -152,13 +153,25 @@ struct TaskListView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("Total")
-                    .font(.headline)
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(DurationFormat.string(from: TimeTracker.totalElapsed(tasks, at: context.date)))
-                        .font(.title3.monospacedDigit().weight(.semibold))
-                        .frame(minWidth: 88, alignment: .trailing)
-                        .accessibilityIdentifier("total-elapsed")
+                bottomStat(
+                    label: "Meetings",
+                    value: DurationFormat.string(from: breaks.monitor.meetingLength),
+                    identifier: "meeting-time"
+                )
+                bottomStat(
+                    label: "Workday",
+                    value: DurationFormat.string(from: breaks.monitor.balancedWorkdayLength),
+                    identifier: "planned-workday"
+                )
+                HStack(spacing: 8) {
+                    Text("Total")
+                        .font(.headline)
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(DurationFormat.string(from: TimeTracker.totalElapsed(tasks, at: context.date)))
+                            .font(.title3.monospacedDigit().weight(.semibold))
+                            .frame(minWidth: 88, alignment: .trailing)
+                            .accessibilityIdentifier("total-elapsed")
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -168,13 +181,33 @@ struct TaskListView: View {
         .sheet(isPresented: $breakSettingsPresented) {
             BreakSettingsSheet(monitor: breaks.monitor)
         }
+        .sheet(isPresented: $meetingTimePresented) {
+            MeetingTimeSheet(meetingHours: 0, onConfirm: resetAll)
+        }
         .alert("Reset all task times?", isPresented: $resetConfirmationPresented) {
-            Button("Reset", role: .destructive, action: resetAll)
-                .accessibilityIdentifier("confirm-reset")
+            Button("Reset", role: .destructive) {
+                Task { @MainActor in
+                    meetingTimePresented = true
+                }
+            }
+            .accessibilityIdentifier("confirm-reset")
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Every task returns to 00:00:00, and the running timer stops.")
+            Text("Every task returns to 00:00:00, and the running timer stops. Next you can set today's meeting time.")
         }
+    }
+
+    private func bottomStat(label: String, value: String, identifier: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier(identifier)
+        }
+        .padding(.trailing, 8)
     }
 
     private var canReset: Bool {
@@ -186,9 +219,9 @@ struct TaskListView: View {
             && tasks.contains { TimeTracker.elapsed($0) >= 60 }
     }
 
-    private func resetAll() {
+    private func resetAll(meetingHours: Double) {
         try? TimeTracker.resetAll(in: modelContext)
-        breaks.monitor.resetCycle()
+        breaks.monitor.resetCycle(meetingHours: meetingHours)
         try? modelContext.save()
     }
 

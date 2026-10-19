@@ -48,6 +48,10 @@ final class TiempoUITests: XCTestCase {
         XCTAssertTrue(confirm.waitForExistence(timeout: 2), app.debugDescription)
         confirm.click()
 
+        let meetingConfirm = app.buttons["confirm-meeting-time"]
+        XCTAssertTrue(meetingConfirm.waitForExistence(timeout: 2), app.debugDescription)
+        meetingConfirm.click()
+
         let cleared = NSPredicate(format: "label == %@", "00:00:00")
         expectation(for: cleared, evaluatedWith: total)
         waitForExpectations(timeout: 2)
