@@ -14,6 +14,12 @@ struct BreakSettingsSheet: View {
             }
             .accessibilityIdentifier("workday-hours")
 
+            Stepper(value: workdayMinutes, in: 0...59) {
+                Text("Workday minutes: \(workdayMinutes.wrappedValue)")
+            }
+            .accessibilityIdentifier("workday-minutes")
+            .disabled(workdayHours.wrappedValue >= 24)
+
             Stepper(value: intervals, in: 0...20) {
                 Text("Intervals: \(intervals.wrappedValue)")
             }
@@ -52,11 +58,23 @@ struct BreakSettingsSheet: View {
         return "\(monitor.intervals) segments of \(segmentMinutes) minutes, with \(breakCount) breaks of \(Int(monitor.breakMinutes.rounded(.down))) minutes. Timers pause when a break starts."
     }
 
+    private var totalWorkdayMinutes: Int {
+        max(0, Int((monitor.workdayHours * 60).rounded()))
+    }
+
     private var workdayHours: Binding<Int> {
         Binding {
-            max(0, Int(monitor.workdayHours.rounded(.down)))
+            min(24, totalWorkdayMinutes / 60)
         } set: { newValue in
-            monitor.workdayHours = Double(newValue)
+            setWorkday(hours: newValue, minutes: totalWorkdayMinutes % 60)
+        }
+    }
+
+    private var workdayMinutes: Binding<Int> {
+        Binding {
+            totalWorkdayMinutes % 60
+        } set: { newValue in
+            setWorkday(hours: totalWorkdayMinutes / 60, minutes: newValue)
         }
     }
 
@@ -74,5 +92,11 @@ struct BreakSettingsSheet: View {
         } set: { newValue in
             monitor.breakMinutes = Double(newValue)
         }
+    }
+
+    private func setWorkday(hours: Int, minutes: Int) {
+        let clampedHours = min(24, max(0, hours))
+        let clampedMinutes = clampedHours >= 24 ? 0 : min(59, max(0, minutes))
+        monitor.workdayHours = Double(clampedHours) + Double(clampedMinutes) / 60
     }
 }
