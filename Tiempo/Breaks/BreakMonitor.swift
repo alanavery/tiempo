@@ -62,7 +62,12 @@ final class BreakMonitor {
         cycle.workdayComplete && !cycle.balanced && totalBreakTime > 0
     }
 
-    func tick(tasks: [TaskItem], at date: Date = .now, in context: ModelContext) {
+    func tick(
+        tasks: [TaskItem],
+        at date: Date = .now,
+        in context: ModelContext,
+        excludingFromPause: PersistentIdentifier? = nil
+    ) {
         let total = TimeTracker.totalElapsed(tasks, at: date)
         guard let segment = segmentLength else { return }
 
@@ -95,7 +100,7 @@ final class BreakMonitor {
             postWorkdayNotification()
         }
         if signals.contains(.pause) {
-            pauseRunningTasks(at: date, in: context)
+            pauseRunningTasks(at: date, in: context, excluding: excludingFromPause)
         }
     }
 
@@ -144,13 +149,18 @@ final class BreakMonitor {
         storeCycle()
     }
 
-    private func pauseRunningTasks(at date: Date, in context: ModelContext) {
+    private func pauseRunningTasks(
+        at date: Date,
+        in context: ModelContext,
+        excluding: PersistentIdentifier? = nil
+    ) {
         context.rollback()
         let running = (try? context.fetch(
             FetchDescriptor<TaskItem>(predicate: #Predicate { $0.runningSince != nil })
         )) ?? []
-        guard !running.isEmpty else { return }
-        for task in running {
+        let toPause = running.filter { $0.persistentModelID != excluding }
+        guard !toPause.isEmpty else { return }
+        for task in toPause {
             TimeTracker.pause(task, at: date)
         }
         try? context.save()

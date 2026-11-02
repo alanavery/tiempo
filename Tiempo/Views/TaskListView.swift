@@ -179,7 +179,7 @@ struct TaskListView: View {
         }
         .background(.bar)
         .sheet(isPresented: $breakSettingsPresented) {
-            BreakSettingsSheet(monitor: breaks.monitor)
+            BreakSettingsSheet(monitor: breaks.monitor, meetings: breaks.meetings)
         }
         .sheet(isPresented: $meetingTimePresented) {
             MeetingTimeSheet(meetingHours: 0, onConfirm: resetAll)
@@ -283,4 +283,3 @@ private struct TaskGroup: Identifiable {
     var title: String
     var tasks: [TaskItem]
 }
-

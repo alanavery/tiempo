@@ -2,7 +2,9 @@ import SwiftUI
 
 struct BreakSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    var monitor: BreakMonitor
+    @Bindable var monitor: BreakMonitor
+    @Bindable var meetings: MeetingSync
+    @State private var isRequestingAccess = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -36,6 +38,38 @@ struct BreakSettingsSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("break-summary")
 
+            Divider()
+
+            Text("Calendar")
+                .font(.headline)
+
+            Toggle("Auto-track meetings", isOn: $meetings.isEnabled)
+                .accessibilityIdentifier("meeting-sync-enabled")
+
+            Text("Uses the \"\(MeetingSync.calendarName)\" calendar. Skips all-day events and starts the \(MeetingSync.taskName) task when an event is in progress.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Text(authorizationLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("calendar-auth-status")
+                Spacer()
+                if !meetings.authorizationGranted {
+                    Button(isRequestingAccess ? "Requesting…" : "Grant Access") {
+                        Task {
+                            isRequestingAccess = true
+                            await meetings.requestAccess()
+                            isRequestingAccess = false
+                        }
+                    }
+                    .disabled(isRequestingAccess)
+                    .accessibilityIdentifier("calendar-grant-access")
+                }
+            }
+
             HStack {
                 Spacer()
                 Button("Done") { dismiss() }
@@ -44,6 +78,16 @@ struct BreakSettingsSheet: View {
         }
         .padding(20)
         .frame(width: 360)
+        .onAppear {
+            meetings.refreshAuthorization()
+        }
+    }
+
+    private var authorizationLabel: String {
+        if meetings.authorizationGranted {
+            return "Calendar access granted"
+        }
+        return "Calendar access required"
     }
 
     private var summary: String {
@@ -55,7 +99,7 @@ struct BreakSettingsSheet: View {
         if breakCount == 0 {
             return "One \(segmentMinutes)-minute work segment with no breaks."
         }
-        return "\(monitor.intervals) segments of \(segmentMinutes) minutes, with \(breakCount) breaks of \(Int(monitor.breakMinutes.rounded(.down))) minutes. Timers pause when a break starts."
+        return "\(monitor.intervals) segments of \(segmentMinutes) minutes, with \(breakCount) breaks of \(Int(monitor.breakMinutes.rounded(.down))) minutes. Timers pause when a break starts, except during calendar meetings."
     }
 
     private var totalWorkdayMinutes: Int {

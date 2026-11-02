@@ -5,12 +5,14 @@ import SwiftData
 @Observable
 final class BreakCoordinator {
     let monitor: BreakMonitor
+    let meetings: MeetingSync
     var onTotalElapsed: ((TimeInterval) -> Void)?
     private var timer: Timer?
     private var context: ModelContext?
 
-    init(monitor: BreakMonitor = BreakMonitor()) {
+    init(monitor: BreakMonitor = BreakMonitor(), meetings: MeetingSync = MeetingSync()) {
         self.monitor = monitor
+        self.meetings = meetings
     }
 
     func start(context: ModelContext) {
@@ -31,9 +33,24 @@ final class BreakCoordinator {
 
     private func tick() {
         guard let context else { return }
-        let tasks = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? []
+        var tasks = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? []
         publishTotal(tasks: tasks, at: .now)
-        monitor.tick(tasks: tasks, at: .now, in: context)
+        meetings.tick(
+            tasks: tasks,
+            at: .now,
+            in: context,
+            endingBreak: { [monitor] in
+                monitor.endBreak()
+            }
+        )
+        tasks = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? []
+        monitor.tick(
+            tasks: tasks,
+            at: .now,
+            in: context,
+            excludingFromPause: meetings.protectedTaskID
+        )
+        publishTotal(at: .now)
     }
 
     private func publishTotal(at date: Date) {
