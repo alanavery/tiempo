@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct BreakSettingsSheet: View {
@@ -52,22 +53,12 @@ struct BreakSettingsSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack {
-                Text(authorizationLabel)
+                Text(meetings.authorization.statusLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("calendar-auth-status")
                 Spacer()
-                if !meetings.authorizationGranted {
-                    Button(isRequestingAccess ? "Requesting…" : "Grant Access") {
-                        Task {
-                            isRequestingAccess = true
-                            await meetings.requestAccess()
-                            isRequestingAccess = false
-                        }
-                    }
-                    .disabled(isRequestingAccess)
-                    .accessibilityIdentifier("calendar-grant-access")
-                }
+                accessButton
             }
 
             HStack {
@@ -83,11 +74,32 @@ struct BreakSettingsSheet: View {
         }
     }
 
-    private var authorizationLabel: String {
-        if meetings.authorizationGranted {
-            return "Calendar access granted"
+    @ViewBuilder
+    private var accessButton: some View {
+        switch meetings.authorization {
+        case .fullAccess:
+            EmptyView()
+        case .denied, .restricted:
+            Button("Open Settings") {
+                openCalendarPrivacySettings()
+            }
+            .accessibilityIdentifier("calendar-open-settings")
+        case .notDetermined, .writeOnly, .unknown:
+            Button(isRequestingAccess ? "Requesting…" : "Grant Access") {
+                Task {
+                    isRequestingAccess = true
+                    await meetings.requestAccess()
+                    isRequestingAccess = false
+                    if !meetings.authorizationGranted,
+                       meetings.authorization == .denied || meetings.authorization == .restricted
+                    {
+                        openCalendarPrivacySettings()
+                    }
+                }
+            }
+            .disabled(isRequestingAccess)
+            .accessibilityIdentifier("calendar-grant-access")
         }
-        return "Calendar access required"
     }
 
     private var summary: String {
@@ -142,5 +154,10 @@ struct BreakSettingsSheet: View {
         let clampedHours = min(24, max(0, hours))
         let clampedMinutes = clampedHours >= 24 ? 0 : min(59, max(0, minutes))
         monitor.workdayHours = Double(clampedHours) + Double(clampedMinutes) / 60
+    }
+
+    private func openCalendarPrivacySettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")!
+        NSWorkspace.shared.open(url)
     }
 }

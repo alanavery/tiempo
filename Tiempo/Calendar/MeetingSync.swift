@@ -10,7 +10,7 @@ final class MeetingSync {
 
     private(set) var isInMeeting = false
     private(set) var activeEventTitle: String?
-    private(set) var authorizationGranted: Bool
+    private(set) var authorization: CalendarAuthorization
 
     var isEnabled: Bool {
         didSet { defaults.set(isEnabled, forKey: Keys.enabled) }
@@ -27,7 +27,7 @@ final class MeetingSync {
     ) {
         self.source = source
         self.defaults = defaults
-        authorizationGranted = source.authorizationGranted
+        authorization = source.authorization
         if defaults.object(forKey: Keys.enabled) == nil {
             isEnabled = false
         } else {
@@ -35,17 +35,21 @@ final class MeetingSync {
         }
     }
 
+    var authorizationGranted: Bool {
+        authorization.isGranted
+    }
+
     var protectedTaskID: PersistentIdentifier? {
         isInMeeting ? meetingsTaskID : nil
     }
 
     func requestAccess() async {
-        authorizationGranted = await source.requestAccess()
-        authorizationGranted = source.authorizationGranted || authorizationGranted
+        _ = await source.requestAccess()
+        authorization = source.authorization
     }
 
     func refreshAuthorization() {
-        authorizationGranted = source.authorizationGranted
+        authorization = source.authorization
     }
 
     func tick(tasks: [TaskItem], at date: Date = .now, in context: ModelContext, endingBreak: () -> Void) {

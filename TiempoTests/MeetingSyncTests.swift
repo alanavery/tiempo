@@ -127,11 +127,11 @@ final class MeetingSyncTests: XCTestCase {
 
 @MainActor
 private final class MockCalendarSource: CalendarEventSource {
-    var authorizationGranted = true
+    var authorization: CalendarAuthorization = .fullAccess
     var events: [CalendarEventSnapshot] = []
 
     func requestAccess() async -> Bool {
-        authorizationGranted = true
+        authorization = .fullAccess
         return true
     }
 

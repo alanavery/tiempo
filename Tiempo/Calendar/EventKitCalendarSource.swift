@@ -9,8 +9,8 @@ final class EventKitCalendarSource: CalendarEventSource {
     private var cachedDayStart: Date?
     private var lastFetch: Date?
 
-    var authorizationGranted: Bool {
-        EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    var authorization: CalendarAuthorization {
+        .current()
     }
 
     func requestAccess() async -> Bool {
@@ -32,7 +32,7 @@ final class EventKitCalendarSource: CalendarEventSource {
         let dayChanged = cachedDayStart != dayStart
         let calendarChanged = cachedCalendarName != calendarNamed
         guard stale || dayChanged || calendarChanged || cachedEvents.isEmpty else { return }
-        guard authorizationGranted else {
+        guard authorization.isGranted else {
             cachedEvents = []
             cachedCalendarName = calendarNamed
             cachedDayStart = dayStart
