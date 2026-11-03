@@ -20,6 +20,7 @@ final class MeetingSync {
     private let defaults: UserDefaults
     private var previousTaskID: PersistentIdentifier?
     private var meetingsTaskID: PersistentIdentifier?
+    private var dismissedEventKey: String?
 
     init(
         source: CalendarEventSource = EventKitCalendarSource(),
@@ -69,6 +70,7 @@ final class MeetingSync {
                 endingBreak: endingBreak
             )
         } else {
+            dismissedEventKey = nil
             leaveMeetingIfNeeded(tasks: tasks, at: date, in: context, endingBreak: endingBreak, notify: true)
         }
     }
@@ -88,6 +90,11 @@ final class MeetingSync {
         in context: ModelContext,
         endingBreak: () -> Void
     ) {
+        let key = eventKey(event)
+        if dismissedEventKey == key {
+            return
+        }
+
         guard let meetings = ensureMeetingsTask(among: tasks, in: context) else { return }
         meetingsTaskID = meetings.persistentModelID
 
@@ -110,10 +117,16 @@ final class MeetingSync {
         }
 
         activeEventTitle = event.title
-        if meetings.runningSince == nil {
-            try? TimeTracker.start(meetings, at: date, in: context)
-            try? context.save()
-        }
+        guard meetings.runningSince == nil else { return }
+
+        dismissedEventKey = key
+        previousTaskID = nil
+        activeEventTitle = nil
+        isInMeeting = false
+    }
+
+    private func eventKey(_ event: CalendarEventSnapshot) -> String {
+        "\(event.title)|\(event.start.timeIntervalSince1970)"
     }
 
     private func leaveMeetingIfNeeded(

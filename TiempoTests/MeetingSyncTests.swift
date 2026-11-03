@@ -86,6 +86,51 @@ final class MeetingSyncTests: XCTestCase {
         XCTAssertEqual(try context.fetch(FetchDescriptor<TaskItem>()).count, 1)
     }
 
+    func testManualTaskStartCutsMeetingShort() throws {
+        let source = MockCalendarSource()
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let sync = MeetingSync(source: source, defaults: defaults)
+        sync.isEnabled = true
+
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let coding = TaskItem(name: "Coding", project: project)
+        context.insert(coding)
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        try TimeTracker.start(coding, at: start, in: context)
+        try context.save()
+
+        let event = CalendarEventSnapshot(
+            title: "Standup",
+            start: start,
+            end: start.addingTimeInterval(1800)
+        )
+        source.events = [event]
+        sync.tick(tasks: [coding], at: start.addingTimeInterval(60), in: context, endingBreak: {})
+
+        var tasks = try context.fetch(FetchDescriptor<TaskItem>())
+        let meetings = try XCTUnwrap(tasks.first { $0.name == "Meetings" })
+        XCTAssertNotNil(meetings.runningSince)
+
+        try TimeTracker.start(coding, at: start.addingTimeInterval(120), in: context)
+        try context.save()
+        XCTAssertNil(meetings.runningSince)
+        XCTAssertNotNil(coding.runningSince)
+
+        tasks = try context.fetch(FetchDescriptor<TaskItem>())
+        sync.tick(tasks: tasks, at: start.addingTimeInterval(180), in: context, endingBreak: {})
+
+        XCTAssertFalse(sync.isInMeeting)
+        XCTAssertNil(meetings.runningSince)
+        XCTAssertNotNil(coding.runningSince)
+
+        source.events = []
+        sync.tick(tasks: tasks, at: start.addingTimeInterval(1900), in: context, endingBreak: {})
+        XCTAssertNotNil(coding.runningSince)
+        XCTAssertNil(meetings.runningSince)
+    }
+
     func testBreakPauseExcludesMeetingsTaskWhileInMeeting() throws {
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
         defaults.set(2.0 / 3600.0, forKey: "break.workdayHours")
