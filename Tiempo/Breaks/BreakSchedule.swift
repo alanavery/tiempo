@@ -36,7 +36,6 @@ enum BreakSchedule {
         total: TimeInterval,
         segment: TimeInterval,
         intervals: Int,
-        meeting: TimeInterval = 0,
         cycle: BreakCycle
     ) -> (BreakCycle, [BreakSignal]) {
         let segmentSeconds = wholeSeconds(segment)
@@ -47,11 +46,7 @@ enum BreakSchedule {
 
         let totalSeconds = wholeSeconds(total)
         let maxBreaks = max(0, intervals - 1)
-        let workdayAt = workdayCompleteAt(
-            segmentSeconds: segmentSeconds,
-            intervals: intervals,
-            meeting: meeting
-        )
+        let workdayAt = intervals * segmentSeconds
 
         if cycle.breaksCompleted >= maxBreaks {
             guard totalSeconds >= workdayAt else { return (cycle, []) }
@@ -82,33 +77,19 @@ enum BreakSchedule {
     static func phase(
         total: TimeInterval,
         segment: TimeInterval,
-        intervals: Int,
-        meeting: TimeInterval = 0
+        intervals: Int
     ) -> BreakCycle? {
         let segmentSeconds = wholeSeconds(segment)
         guard segmentSeconds > 0, intervals > 0 else { return nil }
         let maxBreaks = max(0, intervals - 1)
         let totalSeconds = wholeSeconds(total)
-        let workdayAt = workdayCompleteAt(
-            segmentSeconds: segmentSeconds,
-            intervals: intervals,
-            meeting: meeting
-        )
+        let workdayAt = intervals * segmentSeconds
         let lastBreakAt = maxBreaks * segmentSeconds
         if totalSeconds >= max(workdayAt, lastBreakAt) {
             return BreakCycle(breaksCompleted: maxBreaks, onBreak: false, workdayComplete: true)
         }
         let completed = min(totalSeconds / segmentSeconds, maxBreaks)
         return BreakCycle(breaksCompleted: completed, onBreak: false)
-    }
-
-    static func workdayCompleteAt(
-        segmentSeconds: Int,
-        intervals: Int,
-        meeting: TimeInterval
-    ) -> Int {
-        let meetingSeconds = wholeSeconds(meeting)
-        return max(0, intervals * segmentSeconds - meetingSeconds)
     }
 
     static func notifyTotal(breaksCompleted: Int, segment: TimeInterval) -> TimeInterval {

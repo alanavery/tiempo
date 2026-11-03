@@ -6,7 +6,6 @@ struct TaskListView: View {
     @Query(sort: \TaskItem.sortIndex) private var tasks: [TaskItem]
     @Environment(BreakCoordinator.self) private var breaks
     @State private var resetConfirmationPresented = false
-    @State private var meetingTimePresented = false
     @State private var breakSettingsPresented = false
     @State private var renamingTaskID: PersistentIdentifier?
     @State private var editingTimeTaskID: PersistentIdentifier?
@@ -153,16 +152,6 @@ struct TaskListView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                bottomStat(
-                    label: "Meetings",
-                    value: DurationFormat.string(from: breaks.monitor.meetingLength),
-                    identifier: "meeting-time"
-                )
-                bottomStat(
-                    label: "Workday",
-                    value: DurationFormat.string(from: breaks.monitor.balancedWorkdayLength),
-                    identifier: "planned-workday"
-                )
                 HStack(spacing: 8) {
                     Text("Total")
                         .font(.headline)
@@ -181,33 +170,13 @@ struct TaskListView: View {
         .sheet(isPresented: $breakSettingsPresented) {
             BreakSettingsSheet(monitor: breaks.monitor, meetings: breaks.meetings)
         }
-        .sheet(isPresented: $meetingTimePresented) {
-            MeetingTimeSheet(meetingHours: 0, onConfirm: resetAll)
-        }
         .alert("Reset all task times?", isPresented: $resetConfirmationPresented) {
-            Button("Reset", role: .destructive) {
-                Task { @MainActor in
-                    meetingTimePresented = true
-                }
-            }
-            .accessibilityIdentifier("confirm-reset")
+            Button("Reset", role: .destructive, action: resetAll)
+                .accessibilityIdentifier("confirm-reset")
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Every task returns to 00:00:00, and the running timer stops. Next you can set today's meeting time.")
+            Text("Every task returns to 00:00:00, and the running timer stops.")
         }
-    }
-
-    private func bottomStat(label: String, value: String, identifier: String) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.body.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier(identifier)
-        }
-        .padding(.trailing, 8)
     }
 
     private var canReset: Bool {
@@ -219,9 +188,9 @@ struct TaskListView: View {
             && tasks.contains { TimeTracker.elapsed($0) >= 60 }
     }
 
-    private func resetAll(meetingHours: Double) {
+    private func resetAll() {
         try? TimeTracker.resetAll(in: modelContext)
-        breaks.monitor.resetCycle(meetingHours: meetingHours)
+        breaks.monitor.resetCycle()
         try? modelContext.save()
     }
 
