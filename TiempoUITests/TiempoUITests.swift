@@ -82,12 +82,12 @@ final class TiempoUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 2), app.debugDescription)
         field.click()
         field.typeKey("a", modifierFlags: .command)
-        field.typeText("01:15:30")
+        field.typeText("1.25")
         app.buttons["save-edit-time"].click()
 
         let elapsed = app.staticTexts["elapsed-Design"]
         XCTAssertTrue(elapsed.waitForExistence(timeout: 2), app.debugDescription)
-        let showsEditedTime = NSPredicate(format: "label == %@ OR value == %@", "01:15:30", "01:15:30")
+        let showsEditedTime = NSPredicate(format: "label == %@ OR value == %@", "01:15:00", "01:15:00")
         expectation(for: showsEditedTime, evaluatedWith: elapsed)
         expectation(for: showsEditedTime, evaluatedWith: app.staticTexts["total-elapsed"])
         waitForExpectations(timeout: 2)

@@ -9,7 +9,7 @@ struct EditTimeSheet: View {
 
     init(elapsed: TimeInterval, onSave: @escaping (TimeInterval) -> Void) {
         self.onSave = onSave
-        _text = State(initialValue: DurationFormat.string(from: elapsed))
+        _text = State(initialValue: DurationFormat.decimalHoursString(from: elapsed))
     }
 
     var body: some View {
@@ -17,16 +17,17 @@ struct EditTimeSheet: View {
             Text("Edit Time")
                 .font(.headline)
 
-            TextField("00:00:00", text: $text)
+            TextField("0", text: $text)
                 .textFieldStyle(.roundedBorder)
                 .font(.body.monospacedDigit())
                 .focused($textFocused)
                 .accessibilityIdentifier("edit-time")
                 .onSubmit(save)
 
-            Text("Use hours:minutes:seconds, like 01:30:00.")
+            Text(helpText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack {
                 Spacer()
@@ -44,8 +45,15 @@ struct EditTimeSheet: View {
         .onAppear { textFocused = true }
     }
 
+    private var helpText: String {
+        if let parsed {
+            return "Saves as \(DurationFormat.string(from: parsed)). Use hours, like 3.75 for 3 hours 45 minutes."
+        }
+        return "Use hours, like 3.75 for 3 hours 45 minutes. Seconds are cleared on save."
+    }
+
     private var parsed: TimeInterval? {
-        DurationFormat.timeInterval(from: text)
+        DurationFormat.timeInterval(fromDecimalHours: text)
     }
 
     private func save() {

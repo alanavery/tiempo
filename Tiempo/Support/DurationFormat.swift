@@ -12,6 +12,30 @@ enum DurationFormat {
         return "\(parts.hours):" + String(format: "%02d", parts.minutes)
     }
 
+    static func decimalHoursString(from interval: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(interval) / 60)
+        if totalMinutes % 60 == 0 {
+            return String(totalMinutes / 60)
+        }
+        let hours = Double(totalMinutes) / 60
+        var text = String(format: "%.4f", hours)
+        while text.hasSuffix("0") {
+            text.removeLast()
+        }
+        if text.hasSuffix(".") {
+            text.removeLast()
+        }
+        return text
+    }
+
+    static func timeInterval(fromDecimalHours string: String) -> TimeInterval? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let hours = Double(trimmed), hours >= 0, hours.isFinite else { return nil }
+        let totalMinutes = (hours * 60).rounded()
+        guard totalMinutes >= 0, totalMinutes <= Double(Int.max) else { return nil }
+        return totalMinutes * 60
+    }
+
     static func timeInterval(from string: String) -> TimeInterval? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         let parts = trimmed.split(separator: ":", omittingEmptySubsequences: false)

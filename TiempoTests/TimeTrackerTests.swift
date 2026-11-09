@@ -108,6 +108,29 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertNil(DurationFormat.timeInterval(from: "90:00"))
     }
 
+    func testDurationFormatParsesDecimalHours() throws {
+        XCTAssertEqual(
+            try XCTUnwrap(DurationFormat.timeInterval(fromDecimalHours: "3.75")),
+            3 * 3600 + 45 * 60,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(DurationFormat.timeInterval(fromDecimalHours: "3")),
+            3 * 3600,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(DurationFormat.timeInterval(fromDecimalHours: "0.5")),
+            30 * 60,
+            accuracy: 0.001
+        )
+        XCTAssertNil(DurationFormat.timeInterval(fromDecimalHours: ""))
+        XCTAssertNil(DurationFormat.timeInterval(fromDecimalHours: "-1"))
+        XCTAssertNil(DurationFormat.timeInterval(fromDecimalHours: "1:30"))
+        XCTAssertEqual(DurationFormat.decimalHoursString(from: 3 * 3600 + 45 * 60 + 22), "3.75")
+        XCTAssertEqual(DurationFormat.decimalHoursString(from: 2 * 3600 + 15), "2")
+    }
+
     func testMenuBarDurationUsesHoursAndMinutes() {
         XCTAssertNil(DurationFormat.menuBarString(from: 0))
         XCTAssertEqual(DurationFormat.menuBarString(from: 45), "0:00")
@@ -161,6 +184,49 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(3 * 60 + 53), 15 * 60, accuracy: 0.001)
         XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(28 * 60 + 10), 30 * 60, accuracy: 0.001)
         XCTAssertEqual(TimeTracker.roundedUpToQuarterHour(30 * 60), 30 * 60, accuracy: 0.001)
+    }
+
+    func testBalanceBreakTimeSkipsMeetingsTask() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let meetings = TaskItem(name: MeetingSync.taskName, project: project)
+        let coding = TaskItem(name: "Coding", project: project)
+        context.insert(meetings)
+        context.insert(coding)
+        meetings.accumulated = 2 * 3600
+        coding.accumulated = 5 * 3600
+
+        TimeTracker.balanceBreakTime(tasks: [meetings, coding], breakTotal: 3600)
+
+        XCTAssertEqual(meetings.accumulated, 2 * 3600, accuracy: 0.001)
+        XCTAssertEqual(coding.accumulated, 6 * 3600, accuracy: 0.001)
+    }
+
+    func testBalanceWorkdayRoundsMeetingsWithoutBreakShare() throws {
+        let context = try makeContext()
+        let project = Project(name: "Work")
+        context.insert(project)
+        let meetings = TaskItem(name: MeetingSync.taskName, project: project)
+        let coding = TaskItem(name: "Coding", project: project)
+        context.insert(meetings)
+        context.insert(coding)
+        meetings.accumulated = 1 * 3600 + 3 * 60
+        coding.accumulated = 5 * 3600
+
+        TimeTracker.balanceWorkday(
+            tasks: [meetings, coding],
+            breakTotal: 3600,
+            workday: 8 * 3600
+        )
+
+        XCTAssertEqual(meetings.accumulated, 75 * 60, accuracy: 0.001)
+        XCTAssertEqual(coding.accumulated, 6 * 3600, accuracy: 0.001)
+        XCTAssertEqual(
+            meetings.accumulated.truncatingRemainder(dividingBy: 15 * 60),
+            0,
+            accuracy: 0.001
+        )
     }
 
     func testBalanceWorkdayRoundsAndTrimsToWorkday() throws {
